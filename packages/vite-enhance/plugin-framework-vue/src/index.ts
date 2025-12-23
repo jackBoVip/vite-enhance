@@ -1,5 +1,3 @@
-import vue from '@vitejs/plugin-vue';
-import VueDevTools from 'vite-plugin-vue-devtools';
 import type { Plugin as VitePlugin } from 'vite';
 import type { EnhancePlugin, VuePluginOptions } from '@vite-enhance/shared';
 
@@ -37,8 +35,9 @@ export function createVuePlugin(options: CreateVuePluginOptions | null = {}): En
     vitePlugin(): VitePlugin[] {
       const plugins: VitePlugin[] = [];
       
-      // Vue SFC 插件 - use simple configuration to avoid strict type issues
-      const vuePlugins = vue({
+      // Dynamically import Vue plugin to avoid bundling it
+      const vuePlugin = require('@vitejs/plugin-vue');
+      const vuePlugins = vuePlugin.default({
         script: {
           defineModel: true,
         }
@@ -52,23 +51,28 @@ export function createVuePlugin(options: CreateVuePluginOptions | null = {}): En
       
       // Vue DevTools 插件 (仅在开发模式下启用)
       if (devtools.enabled !== false) {
-        const devToolsOptions: any = {};
-        
-        if (devtools.launchEditor) {
-          devToolsOptions.launchEditor = devtools.launchEditor;
-        }
-        
-        if (devtools.componentInspector !== undefined) {
-          devToolsOptions.componentInspector = devtools.componentInspector;
-        }
-        
-        if (devtools.appendTo) {
-          devToolsOptions.appendTo = devtools.appendTo;
-        }
-        
-        const devToolsPlugin = VueDevTools(devToolsOptions);
-        if (devToolsPlugin) {
-          plugins.push(devToolsPlugin as VitePlugin);
+        try {
+          const VueDevTools = require('vite-plugin-vue-devtools');
+          const devToolsOptions: any = {};
+          
+          if (devtools.launchEditor) {
+            devToolsOptions.launchEditor = devtools.launchEditor;
+          }
+          
+          if (devtools.componentInspector !== undefined) {
+            devToolsOptions.componentInspector = devtools.componentInspector;
+          }
+          
+          if (devtools.appendTo) {
+            devToolsOptions.appendTo = devtools.appendTo;
+          }
+          
+          const devToolsPlugin = VueDevTools.default(devToolsOptions);
+          if (devToolsPlugin) {
+            plugins.push(devToolsPlugin as VitePlugin);
+          }
+        } catch (error) {
+          console.warn('[vek:vue] Vue DevTools not available:', error);
         }
       }
       

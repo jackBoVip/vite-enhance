@@ -28,5 +28,22 @@
   },
   "peerDependencies": {
     "vite": "^7.3.0"
+  },
+  "keywords": [
+    "vite",
+    "enhance",
+    "config",
+    "plugin"
+  ],
+  "author": "Vite Enhance Kit Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jackBoVip/vite-enhance.git",
+    "directory": "packages/config"
+  },
+  "homepage": "https://github.com/jackBoVip/vite-enhance#readme",
+  "bugs": {
+    "url": "https://github.com/jackBoVip/vite-enhance/issues"
   }
 }

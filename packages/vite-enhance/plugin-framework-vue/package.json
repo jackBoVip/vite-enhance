@@ -29,18 +29,20 @@
   "author": "Vite Enhance Kit",
   "license": "MIT",
   "dependencies": {
-    "@vite-enhance/shared": "workspace:*",
-    "@vitejs/plugin-vue": "catalog:",
-    "vite-plugin-vue-devtools": "catalog:"
+    "@vite-enhance/shared": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",
+    "@vitejs/plugin-vue": "catalog:",
     "tsup": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
+    "vite-plugin-vue-devtools": "catalog:",
     "vue": "catalog:"
   },
   "peerDependencies": {
+    "@vitejs/plugin-vue": "^6.0.0",
+    "vite-plugin-vue-devtools": "^8.0.0",
     "vue": "^3.0.0"
   }
 }

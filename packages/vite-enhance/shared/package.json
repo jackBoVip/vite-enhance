@@ -40,5 +40,14 @@
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jackBoVip/vite-enhance.git",
+    "directory": "packages/shared"
+  },
+  "homepage": "https://github.com/jackBoVip/vite-enhance#readme",
+  "bugs": {
+    "url": "https://github.com/jackBoVip/vite-enhance/issues"
   }
 }

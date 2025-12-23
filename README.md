@@ -70,30 +70,44 @@
 ### 1️⃣ 安装
 
 ```bash
-pnpm add -D vite-enhance-kit
+# 使用 npm
+npm install vite-enhance
+
+# 使用 yarn  
+yarn add vite-enhance
+
+# 使用 pnpm (推荐)
+pnpm add vite-enhance
 ```
 
 ### 2️⃣ 创建配置
 
 ```ts
-// enhance.config.ts
-import { defineEnhanceConfig } from 'vite-enhance-kit'
+// vite.config.ts
+import { defineConfig } from 'vite'
+import { defineEnhanceConfig } from 'vite-enhance'
 
-export default defineEnhanceConfig({
-  preset: 'app',
-  framework: 'auto',
-  cdn: {
-    enabled: true,
-    provider: 'custom',
-    baseUrl: 'http://10.0.0.1:8080/cdn'
-  }
-})
+export default defineConfig(
+  defineEnhanceConfig({
+    framework: 'auto', // 自动检测 Vue/React
+    plugins: {
+      cdn: true,        // CDN 外部化
+      pwa: true,        // PWA 支持
+      analyze: true,    // 包分析
+      cache: true       // 构建缓存
+    }
+  })
+)
 ```
 
 ### 3️⃣ 启动开发
 
 ```bash
-vek dev
+# 开发模式
+npm run dev
+
+# 构建生产版本
+npm run build
 ```
 
 ---
@@ -365,6 +379,50 @@ cdn({
 * Monorepo 支持
 * React Native / Electron 适配
 * 构建缓存与加速
+
+---
+
+## 🔗 相关链接
+
+- [GitHub 仓库](https://github.com/jackBoVip/vite-enhance)
+- [npm 包](https://www.npmjs.com/package/vite-enhance)
+- [发布指南](PUBLISHING.md) - 了解如何发布新版本
+- [更新日志](CHANGELOG.md) - 查看版本更新记录
+
+## 🤝 贡献
+
+我们欢迎所有形式的贡献！请查看 [贡献指南](CONTRIBUTING.md) 了解详情。
+
+### 开发流程
+
+1. Fork 项目
+2. 创建功能分支: `git checkout -b feature/amazing-feature`
+3. 提交更改: `git commit -m 'Add amazing feature'`
+4. 推送分支: `git push origin feature/amazing-feature`
+5. 提交 Pull Request
+
+### 本地开发
+
+```bash
+# 克隆项目
+git clone https://github.com/jackBoVip/vite-enhance.git
+cd vite-enhance
+
+# 安装依赖
+pnpm install
+
+# 构建所有包
+pnpm build
+
+# 开发模式 (监听文件变化)
+pnpm dev
+
+# 运行测试
+pnpm test
+
+# 类型检查
+pnpm typecheck
+```
 
 ---
 

@@ -188,7 +188,7 @@ function detectFramework(config: EnhanceFeatureConfig): 'vue' | 'react' | 'none'
 /**
  * Create Vue plugin
  */
-function createVuePlugin(options: any = {}): any[] {
+function createVuePlugin(_options: any = {}): any[] {
   try {
     // For now, just warn and return empty array
     // The user should install @vitejs/plugin-vue and configure it manually

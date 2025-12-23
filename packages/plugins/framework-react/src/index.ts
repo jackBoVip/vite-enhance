@@ -1,4 +1,3 @@
-import react from '@vitejs/plugin-react';
 import type { Plugin as VitePlugin } from 'vite';
 import type { EnhancePlugin, ReactPluginOptions } from '@vite-enhance/shared';
 
@@ -18,7 +17,9 @@ export function createReactPlugin(_options: CreateReactPluginOptions | null = {}
     apply: 'both',
     
     vitePlugin(): VitePlugin[] {
-      const reactPlugins = react({
+      // Dynamically import @vitejs/plugin-react to avoid bundling it
+      const reactPlugin = require('@vitejs/plugin-react');
+      const reactPlugins = reactPlugin.default({
         // @vitejs/plugin-react options
         // fastRefresh is enabled by default in development
       });

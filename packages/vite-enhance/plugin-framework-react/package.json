@@ -29,13 +29,13 @@
   "author": "Vite Enhance Kit",
   "license": "MIT",
   "dependencies": {
-    "@vite-enhance/shared": "workspace:*",
-    "@vitejs/plugin-react": "catalog:"
+    "@vite-enhance/shared": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
+    "@vitejs/plugin-react": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
     "tsup": "catalog:",
@@ -43,7 +43,8 @@
     "vite": "catalog:"
   },
   "peerDependencies": {
-    "react": "^16.8.0 || ^17.0.0 || ^18.0.0",
-    "react-dom": "^16.8.0 || ^17.0.0 || ^18.0.0"
+    "@vitejs/plugin-react": "^5.0.0",
+    "react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0",
+    "react-dom": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0"
   }
 }

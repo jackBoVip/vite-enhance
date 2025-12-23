@@ -3,13 +3,12 @@ import { defineConfig } from 'tsup';
 export default defineConfig({
   entry: ['src/index.ts'],
   format: ['esm', 'cjs'],
-  dts: true,
-  clean: true,
-  tsconfig: './tsconfig.json',
   dts: {
     compilerOptions: {
       incremental: false,
       composite: false,
     },
   },
+  clean: true,
+  tsconfig: './tsconfig.json',
 });
