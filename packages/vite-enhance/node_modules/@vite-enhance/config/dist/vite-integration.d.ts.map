@@ -1,0 +1,1 @@
+{"version":3,"file":"vite-integration.d.ts","sourceRoot":"","sources":["../src/vite-integration.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,UAAU,IAAI,cAAc,EAAE,MAAM,MAAM,CAAC;AACzD,OAAO,KAAK,EAAE,aAAa,EAAwB,MAAM,sBAAsB,CAAC;AAEhF;;GAEG;AACH,wBAAgB,gBAAgB,CAAC,MAAM,EAAE,aAAa,GAAG,cAAc,CActE"}

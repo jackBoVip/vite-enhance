@@ -1,10 +1,10 @@
 # Dependencies
-node_modules/
+/node_modules/
 .pnpm-store/
 
 # Build outputs
-dist/
-build/
+/dist/
+/build/
 *.tsbuildinfo
 
 # Environment files
