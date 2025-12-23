@@ -1,5 +1,7 @@
 import type { UserConfig as ViteUserConfig } from 'vite';
 import type { EnhanceConfig, EnhanceFeatureConfig } from '@vite-enhance/shared';
+import { createRequire } from 'module';
+
 
 /**
  * Convert EnhanceConfig to ViteConfig for direct Vite usage
@@ -26,7 +28,14 @@ export function createViteConfig(config: EnhanceConfig): ViteUserConfig {
 function normalizeConfig(config: EnhanceConfig): EnhanceFeatureConfig {
   // If using new nested structure, use it directly
   if (config.enhance) {
-    return config.enhance;
+    let normalized = { ...config.enhance };
+    
+    // Auto-detect preset if not explicitly provided
+    if (normalized.preset === undefined) {
+      normalized.preset = detectPreset();
+    }
+    
+    return normalized;
   }
   
   // Otherwise, convert legacy flat structure to nested structure
@@ -39,6 +48,11 @@ function normalizeConfig(config: EnhanceConfig): EnhanceFeatureConfig {
   if (config.cache !== undefined) normalized.cache = config.cache;
   if (config.analyze !== undefined) normalized.analyze = config.analyze;
   if (config.pwa !== undefined) normalized.pwa = config.pwa;
+  
+  // Auto-detect preset if not explicitly provided
+  if (normalized.preset === undefined) {
+    normalized.preset = detectPreset();
+  }
   
   return normalized;
 }
@@ -103,6 +117,38 @@ function createFrameworkPlugins(config: EnhanceFeatureConfig): any[] {
       plugins.push(...createReactPlugin(config.react));
     }
   }
+  
+  // Svelte plugin
+  if (config.svelte !== false) {
+    const framework = detectFramework(config);
+    if (framework === 'svelte' || config.svelte) {
+      plugins.push(...createSveltePlugin(config.svelte));
+    }
+  }
+  
+  // Solid plugin
+  if (config.solid !== false) {
+    const framework = detectFramework(config);
+    if (framework === 'solid' || config.solid) {
+      plugins.push(...createSolidPlugin(config.solid));
+    }
+  }
+  
+  // Lit plugin
+  if (config.lit !== false) {
+    const framework = detectFramework(config);
+    if (framework === 'lit' || config.lit) {
+      plugins.push(...createLitPlugin(config.lit));
+    }
+  }
+  
+  // Preact plugin
+  if (config.preact !== false) {
+    const framework = detectFramework(config);
+    if (framework === 'preact' || config.preact) {
+      plugins.push(...createPreactPlugin(config.preact));
+    }
+  }
 
   return plugins;
 }
@@ -139,14 +185,177 @@ function createFeaturePlugins(config: EnhanceFeatureConfig): any[] {
 /**
  * Detect framework from config or dependencies
  */
-function detectFramework(config: EnhanceFeatureConfig): 'vue' | 'react' | 'none' {
+function detectFramework(config: EnhanceFeatureConfig): 'vue' | 'react' | 'svelte' | 'solid' | 'lit' | 'preact' | 'none' {
   // Check explicit framework config
   if (config.vue) return 'vue';
   if (config.react) return 'react';
 
-  // For now, just return 'none' to avoid file system access issues
-  // In a real implementation, this would check package.json
+  // Try to detect from package.json dependencies
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const packageJsonPath = path.join(process.cwd(), 'package.json');
+    
+    if (fs.existsSync(packageJsonPath)) {
+      const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
+      const allDeps = {
+        ...packageJson.dependencies,
+        ...packageJson.devDependencies,
+        ...packageJson.peerDependencies,
+      };
+
+      // Vue detection
+      if (allDeps.vue || allDeps['@vue/core']) return 'vue';
+      
+      // React detection
+      if (allDeps.react || allDeps['react-dom']) return 'react';
+      
+      // Svelte detection
+      if (allDeps.svelte || allDeps['@sveltejs/vite-plugin-svelte']) return 'svelte';
+      
+      // Solid detection
+      if (allDeps['solid-js'] || allDeps['@solidjs/vite-plugin-solid']) return 'solid';
+      
+      // Lit detection
+      if (allDeps['lit-element'] || allDeps['lit-html'] || allDeps['lit'] || allDeps['@lit-labs/vite-plugin']) return 'lit';
+      
+      // Preact detection
+      if (allDeps.preact || allDeps['@preact/preset-vite']) return 'preact';
+    }
+  } catch {
+    // Ignore errors in detection
+  }
+
   return 'none';
+}
+
+/**
+ * Detect project preset (app or lib) from package.json and project structure
+ */
+function detectPreset(): 'app' | 'lib' {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const packageJsonPath = path.join(process.cwd(), 'package.json');
+    
+    if (fs.existsSync(packageJsonPath)) {
+      const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
+      
+      // Check for library-specific indicators
+      // Libraries typically have build configuration for multiple formats
+      if (
+        packageJson.main || // CommonJS entry
+        packageJson.module || // ES Module entry
+        packageJson.types || // TypeScript declaration
+        packageJson.typings || // TypeScript declaration
+        (packageJson.exports && // Multiple export points
+          (typeof packageJson.exports === 'object' || 
+           (typeof packageJson.exports === 'string' && packageJson.exports.includes('dist/')))
+        )
+      ) {
+        // Additional checks to differentiate from apps that might have these fields
+        const scripts = packageJson.scripts || {};
+        
+        // Check for library-specific scripts
+        const libScripts = ['build:lib', 'build:esm', 'build:cjs', 'build:umd', 'build:iife', 'prebuild', 'postbuild'];
+        for (const script of libScripts) {
+          if (scripts[script]) {
+            return 'lib';
+          }
+        }
+        
+        // Check for library-specific dependencies
+        const libDeps = ['rollup', '@rollup', 'vite-plugin-dts', 'unbuild', '@microsoft/api-extractor'];
+        const allDeps = {
+          ...packageJson.dependencies,
+          ...packageJson.devDependencies,
+          ...packageJson.peerDependencies,
+        };
+        
+        for (const dep of libDeps) {
+          if (allDeps[dep] || Object.keys(allDeps).some(d => d.startsWith(dep))) {
+            return 'lib';
+          }
+        }
+        
+        // If it has main/module/types but no library-specific scripts/dependencies,
+        // check if it's more likely a library by looking for build output patterns
+        if (packageJson.main && (packageJson.main.includes('dist/') || packageJson.main.includes('lib/') || packageJson.main.includes('es/'))) {
+          return 'lib';
+        }
+        
+        if (packageJson.module && (packageJson.module.includes('dist/') || packageJson.module.includes('es/'))) {
+          return 'lib';
+        }
+      }
+      
+      // Check for app-specific indicators
+      // Apps typically have dev/build/start scripts
+      const appScripts = ['dev', 'start', 'serve', 'preview'];
+      const scripts = packageJson.scripts || {};
+      for (const script of appScripts) {
+        if (scripts[script]) {
+          // Check if it doesn't have library characteristics
+          if (!packageJson.main || !packageJson.main.includes('dist/')) {
+            return 'app';
+          }
+        }
+      }
+      
+      // Additional check: if it has a browser field or a "build" script that suggests app building
+      if (packageJson.browser && typeof packageJson.browser === 'string') {
+        // Browser field often indicates an app that targets browsers
+        return 'app';
+      }
+      
+      // Check for frontend entry files (HTML) which indicate app projects
+      const commonHtmlFiles = [
+        'index.html',
+        'public/index.html',
+        'src/index.html',
+        'index.htm',
+        'public/index.htm',
+        'src/index.htm'
+      ];
+      
+      for (const htmlFile of commonHtmlFiles) {
+        const htmlPath = path.join(process.cwd(), htmlFile);
+        if (fs.existsSync(htmlPath)) {
+          // Read the HTML file to check for framework-specific indicators
+          try {
+            const htmlContent = fs.readFileSync(htmlPath, 'utf-8');
+            
+            // Look for framework-specific indicators in the HTML
+            if (
+              htmlContent.includes('id="app"') ||
+              htmlContent.includes('id="root"') ||
+              htmlContent.includes('div id=') && (htmlContent.includes('app') || htmlContent.includes('root')) ||
+              htmlContent.includes('data-') && htmlContent.includes('app') ||
+              htmlContent.includes('mount')
+            ) {
+              return 'app';
+            }
+          } catch {
+            // If there's an error reading the HTML file, continue checking
+          }
+        }
+      }
+      
+      // Additional check: Look for common app directories
+      const appDirs = ['public', 'assets', 'static'];
+      for (const dir of appDirs) {
+        const dirPath = path.join(process.cwd(), dir);
+        if (fs.existsSync(dirPath) && fs.statSync(dirPath).isDirectory()) {
+          return 'app';
+        }
+      }
+    }
+  } catch {
+    // If there's an error in detection, default to 'app'
+  }
+  
+  // Default to 'app' if no clear indicators found
+  return 'app';
 }
 
 /**
@@ -284,19 +493,98 @@ function createPWAPlugin(options: any): any[] {
 }
 
 /**
+ * Create Svelte plugin
+ */
+function createSveltePlugin(options: any = {}): any[] {
+  try {
+    // Try to dynamically import the Svelte plugin
+    const sveltePlugin = tryImportPlugin('@sveltejs/vite-plugin-svelte');
+    if (sveltePlugin) {
+      return [sveltePlugin(options)];
+    }
+    
+    console.warn('[vite-enhance] Svelte plugin not found. Please install @sveltejs/vite-plugin-svelte');
+    return [];
+  } catch (error: any) {
+    console.warn('[vite-enhance] Svelte plugin not found. Please install @sveltejs/vite-plugin-svelte');
+    console.warn('Error:', error?.message || 'Unknown error');
+    return [];
+  }
+}
+
+/**
+ * Create Solid plugin
+ */
+function createSolidPlugin(options: any = {}): any[] {
+  try {
+    // Try to dynamically import the Solid plugin
+    const solidPlugin = tryImportPlugin('@solidjs/vite-plugin-solid');
+    if (solidPlugin) {
+      return [solidPlugin(options)];
+    }
+    
+    console.warn('[vite-enhance] Solid plugin not found. Please install @solidjs/vite-plugin-solid');
+    return [];
+  } catch (error: any) {
+    console.warn('[vite-enhance] Solid plugin not found. Please install @solidjs/vite-plugin-solid');
+    console.warn('Error:', error?.message || 'Unknown error');
+    return [];
+  }
+}
+
+/**
+ * Create Lit plugin
+ */
+function createLitPlugin(options: any = {}): any[] {
+  try {
+    // Try to dynamically import the Lit plugin
+    const litPlugin = tryImportPlugin('@lit-labs/vite-plugin');
+    if (litPlugin) {
+      return [litPlugin(options)];
+    }
+    
+    // Try alternative Lit plugin
+    const litPlugin2 = tryImportPlugin('vite-plugin-lit');
+    if (litPlugin2) {
+      return [litPlugin2(options)];
+    }
+    
+    console.warn('[vite-enhance] Lit plugin not found. Please install @lit-labs/vite-plugin or vite-plugin-lit');
+    return [];
+  } catch (error: any) {
+    console.warn('[vite-enhance] Lit plugin not available:', error?.message || 'Unknown error');
+    return [];
+  }
+}
+
+/**
+ * Create Preact plugin
+ */
+function createPreactPlugin(options: any = {}): any[] {
+  try {
+    // Try to dynamically import the Preact plugin
+    const preactPlugin = tryImportPlugin('@preact/preset-vite');
+    if (preactPlugin) {
+      return [preactPlugin(options)];
+    }
+    
+    console.warn('[vite-enhance] Preact plugin not found. Please install @preact/preset-vite');
+    return [];
+  } catch (error: any) {
+    console.warn('[vite-enhance] Preact plugin not found. Please install @preact/preset-vite');
+    console.warn('Error:', error?.message || 'Unknown error');
+    return [];
+  }
+}
+
+/**
  * Try to dynamically import a plugin
  */
 function tryImportPlugin(packageName: string): any {
   try {
-    // In Node.js environment, use require for synchronous loading
-    if (typeof require !== 'undefined') {
-      return require(packageName);
-    }
-    
-    // For ESM environments, we need to handle this differently
-    // This is a limitation - dynamic imports are async but Vite config needs sync
-    console.warn(`[vite-enhance] Cannot dynamically import ${packageName} in ESM environment`);
-    return null;
+    // Create a require function for dynamic imports in ESM
+    const require = createRequire(import.meta.url);
+    return require(packageName);
   } catch (error) {
     // Plugin not installed or not available
     return null;
