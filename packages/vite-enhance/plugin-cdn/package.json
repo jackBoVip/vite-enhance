@@ -32,10 +32,10 @@
     "@vite-enhance/shared": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "^25.0.3",
-    "tsup": "^8.5.1",
-    "typescript": "^5.9.3",
-    "vite": "^7.3.0",
-    "vite-plugin-cdn-import": "^1.0.1"
+    "@types/node": "catalog:",
+    "tsup": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vite-plugin-cdn-import": "catalog:"
   }
 }

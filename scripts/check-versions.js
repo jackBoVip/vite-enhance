@@ -3,6 +3,7 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { glob } from 'glob';
+import yaml from 'js-yaml';
 
 /**
  * Version consistency checker for monorepo packages
@@ -31,11 +32,28 @@ function readPackageJson(path) {
   }
 }
 
+function readWorkspaceCatalog() {
+  try {
+    const workspaceFile = join(WORKSPACE_ROOT, 'pnpm-workspace.yaml');
+    const content = readFileSync(workspaceFile, 'utf8');
+    const workspace = yaml.load(content);
+    return workspace.catalog || {};
+  } catch (error) {
+    log(`Error reading pnpm-workspace.yaml: ${error.message}`, 'red');
+    return {};
+  }
+}
+
 function findPackages() {
   const packagePaths = glob.sync('packages/*/package.json', { cwd: WORKSPACE_ROOT });
+  const pluginPaths = glob.sync('packages/plugins/*/package.json', { cwd: WORKSPACE_ROOT });
   const examplePaths = glob.sync('examples/*/package.json', { cwd: WORKSPACE_ROOT });
   
-  return [...packagePaths, ...examplePaths].map(path => {
+  // Include root package.json
+  const rootPackagePath = 'package.json';
+  const allPaths = [rootPackagePath, ...packagePaths, ...pluginPaths, ...examplePaths];
+  
+  return allPaths.map(path => {
     const fullPath = join(WORKSPACE_ROOT, path);
     const pkg = readPackageJson(fullPath);
     return pkg ? { path: fullPath, pkg, relativePath: path } : null;
@@ -80,12 +98,12 @@ function checkDependencyConsistency(packages) {
   const dependencyVersions = new Map();
   let hasInconsistency = false;
 
-  // Collect all dependency versions
+  // Collect all dependency versions (excluding peerDependencies from consistency check)
   packages.forEach(({ pkg, relativePath }) => {
     const allDeps = {
       ...pkg.dependencies,
-      ...pkg.devDependencies,
-      ...pkg.peerDependencies
+      ...pkg.devDependencies
+      // Note: peerDependencies excluded from consistency check as they should maintain explicit ranges
     };
 
     Object.entries(allDeps).forEach(([depName, version]) => {
@@ -148,6 +166,124 @@ function checkWorkspaceReferences(packages) {
   return !hasIssues;
 }
 
+function checkCatalogUsage(packages, catalog) {
+  log('\n📚 Checking catalog usage...', 'blue');
+  
+  const packageNames = new Set(packages.map(p => p.pkg.name));
+  const catalogEntries = new Set(Object.keys(catalog));
+  let hasIssues = false;
+
+  packages.forEach(({ pkg, relativePath }) => {
+    // Check dependencies and devDependencies (not peerDependencies)
+    const depsToCheck = {
+      ...pkg.dependencies,
+      ...pkg.devDependencies
+    };
+
+    Object.entries(depsToCheck).forEach(([depName, version]) => {
+      // Skip internal workspace packages
+      if (packageNames.has(depName)) {
+        return;
+      }
+
+      // External dependency should use catalog: syntax
+      if (version !== 'catalog:') {
+        hasIssues = true;
+        log(`❌ ${pkg.name} uses hardcoded version '${version}' for external dependency '${depName}'`, 'red');
+        log(`   Should use 'catalog:' in ${relativePath}`, 'yellow');
+        
+        if (catalogEntries.has(depName)) {
+          log(`   Catalog has: ${depName}: ${catalog[depName]}`, 'blue');
+        } else {
+          log(`   Missing catalog entry for '${depName}'`, 'red');
+        }
+      } else {
+        // Using catalog: syntax, verify catalog entry exists
+        if (!catalogEntries.has(depName)) {
+          hasIssues = true;
+          log(`❌ ${pkg.name} references '${depName}' with catalog: but no catalog entry exists`, 'red');
+          log(`   Add to pnpm-workspace.yaml catalog section`, 'yellow');
+        } else {
+          log(`✅ ${pkg.name} -> ${depName}: catalog: (${catalog[depName]})`, 'green');
+        }
+      }
+    });
+  });
+
+  return !hasIssues;
+}
+
+function checkWorkspaceDependencyUsage(packages) {
+  log('\n🔗 Checking workspace dependency usage...', 'blue');
+  
+  const packageNames = new Set(packages.map(p => p.pkg.name));
+  let hasIssues = false;
+
+  packages.forEach(({ pkg, relativePath }) => {
+    const allDeps = {
+      ...pkg.dependencies,
+      ...pkg.devDependencies
+    };
+
+    Object.entries(allDeps).forEach(([depName, version]) => {
+      // Internal package should use workspace:* syntax
+      if (packageNames.has(depName)) {
+        if (!version.startsWith('workspace:')) {
+          hasIssues = true;
+          log(`❌ ${pkg.name} should use 'workspace:*' for internal dependency '${depName}'`, 'red');
+          log(`   Current: '${version}' in ${relativePath}`, 'yellow');
+        } else {
+          log(`✅ ${pkg.name} -> ${depName}: ${version}`, 'green');
+        }
+      }
+    });
+  });
+
+  return !hasIssues;
+}
+
+function validateCatalogCompleteness(packages, catalog) {
+  log('\n🔍 Validating catalog completeness...', 'blue');
+  
+  const packageNames = new Set(packages.map(p => p.pkg.name));
+  const catalogEntries = new Set(Object.keys(catalog));
+  const externalDeps = new Set();
+  let hasIssues = false;
+
+  // Collect all external dependencies
+  packages.forEach(({ pkg }) => {
+    const allDeps = {
+      ...pkg.dependencies,
+      ...pkg.devDependencies
+    };
+
+    Object.keys(allDeps).forEach(depName => {
+      if (!packageNames.has(depName)) {
+        externalDeps.add(depName);
+      }
+    });
+  });
+
+  // Check if all external dependencies have catalog entries
+  externalDeps.forEach(depName => {
+    if (!catalogEntries.has(depName)) {
+      hasIssues = true;
+      log(`❌ External dependency '${depName}' is missing from catalog`, 'red');
+    } else {
+      log(`✅ ${depName}: ${catalog[depName]}`, 'green');
+    }
+  });
+
+  // Check for unused catalog entries
+  catalogEntries.forEach(catalogDep => {
+    if (!externalDeps.has(catalogDep)) {
+      log(`⚠️  Catalog entry '${catalogDep}' is not used by any package`, 'yellow');
+    }
+  });
+
+  return !hasIssues;
+}
+
 function generateReport(packages) {
   log('\n📊 Version Management Report', 'blue');
   log('='.repeat(50), 'blue');
@@ -184,20 +320,43 @@ async function main() {
     process.exit(1);
   }
 
+  // Read workspace catalog
+  const catalog = readWorkspaceCatalog();
+  
+  if (Object.keys(catalog).length === 0) {
+    log('⚠️  No catalog found in pnpm-workspace.yaml', 'yellow');
+  } else {
+    log(`📚 Found ${Object.keys(catalog).length} catalog entries`, 'blue');
+  }
+
+  // Run all validation checks
   const versionConsistent = checkVersionConsistency(packages);
   const dependencyConsistent = checkDependencyConsistency(packages);
   const workspaceRefsValid = checkWorkspaceReferences(packages);
   
+  // New catalog validation checks
+  const catalogUsageValid = checkCatalogUsage(packages, catalog);
+  const workspaceDepsValid = checkWorkspaceDependencyUsage(packages);
+  const catalogComplete = validateCatalogCompleteness(packages, catalog);
+  
   generateReport(packages);
   
-  const allChecksPass = versionConsistent && dependencyConsistent && workspaceRefsValid;
+  const allChecksPass = versionConsistent && 
+                       dependencyConsistent && 
+                       workspaceRefsValid && 
+                       catalogUsageValid && 
+                       workspaceDepsValid && 
+                       catalogComplete;
   
   if (allChecksPass) {
-    log('\n✅ All version consistency checks passed!', 'green');
+    log('\n✅ All version consistency and catalog validation checks passed!', 'green');
     process.exit(0);
   } else {
-    log('\n❌ Version consistency issues found!', 'red');
-    log('Run `pnpm version:sync` to fix dependency issues', 'yellow');
+    log('\n❌ Version consistency or catalog validation issues found!', 'red');
+    log('Please fix the issues above:', 'yellow');
+    log('  - Use "catalog:" for external dependencies', 'yellow');
+    log('  - Use "workspace:*" for internal dependencies', 'yellow');
+    log('  - Add missing dependencies to pnpm-workspace.yaml catalog', 'yellow');
     process.exit(1);
   }
 }

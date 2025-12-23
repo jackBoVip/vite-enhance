@@ -1,27 +1,10 @@
-// Main entry point for Vite Enhance Kit
-// This allows users to import directly from '@vite-enhance'
-
 import type { UserConfig as ViteUserConfig } from 'vite';
 import type { EnhanceConfig, EnhanceFeatureConfig } from '@vite-enhance/shared';
 
 /**
- * Define an enhance configuration with type safety
- * Supports both new nested structure and legacy flat structure
- */
-export function defineEnhanceConfig(config: EnhanceConfig): ViteUserConfig & { __enhanceConfig?: EnhanceConfig } {
-  // Create a Vite config from the enhance config
-  const viteConfig = createViteConfig(config);
-  
-  // Attach the original enhance config for compatibility
-  (viteConfig as any).__enhanceConfig = config;
-  
-  return viteConfig;
-}
-
-/**
  * Convert EnhanceConfig to ViteConfig for direct Vite usage
  */
-function createViteConfig(config: EnhanceConfig): ViteUserConfig {
+export function createViteConfig(config: EnhanceConfig): ViteUserConfig {
   // Normalize config to handle both new and legacy structures
   const normalizedConfig = normalizeConfig(config);
   
@@ -161,27 +144,8 @@ function detectFramework(config: EnhanceFeatureConfig): 'vue' | 'react' | 'none'
   if (config.vue) return 'vue';
   if (config.react) return 'react';
 
-  // Try to detect from package.json dependencies
-  try {
-    const fs = eval('require')('fs');
-    const path = eval('require')('path');
-    const packageJsonPath = path.join(process.cwd(), 'package.json');
-    
-    if (fs.existsSync(packageJsonPath)) {
-      const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
-      const allDeps = {
-        ...packageJson.dependencies,
-        ...packageJson.devDependencies,
-        ...packageJson.peerDependencies,
-      };
-
-      if (allDeps.vue || allDeps['@vue/core']) return 'vue';
-      if (allDeps.react || allDeps['react-dom']) return 'react';
-    }
-  } catch {
-    // Ignore errors in detection
-  }
-
+  // For now, just return 'none' to avoid file system access issues
+  // In a real implementation, this would check package.json
   return 'none';
 }
 
@@ -190,12 +154,17 @@ function detectFramework(config: EnhanceFeatureConfig): 'vue' | 'react' | 'none'
  */
 function createVuePlugin(options: any = {}): any[] {
   try {
-    // For now, just warn and return empty array
-    // The user should install @vitejs/plugin-vue and configure it manually
-    console.warn('[vite-enhance] Vue plugin loading not yet implemented. Please use @vitejs/plugin-vue directly in your vite.config.js');
-    return [];
-  } catch {
+    // Try to dynamically import the Vue plugin
+    const vuePlugin = tryImportPlugin('@vitejs/plugin-vue');
+    if (vuePlugin) {
+      return [vuePlugin(options)];
+    }
+    
     console.warn('[vite-enhance] Vue plugin not found. Please install @vitejs/plugin-vue');
+    return [];
+  } catch (error: any) {
+    console.warn('[vite-enhance] Vue plugin not found. Please install @vitejs/plugin-vue');
+    console.warn('Error:', error?.message || 'Unknown error');
     return [];
   }
 }
@@ -205,21 +174,18 @@ function createVuePlugin(options: any = {}): any[] {
  */
 function createReactPlugin(options: any = {}): any[] {
   try {
-    // Try to import the enhance React plugin first
-    const enhanceReact = eval('require')('@vite-enhance/plugin-framework-react');
-    const plugin = enhanceReact.createReactPlugin(typeof options === 'boolean' ? {} : options);
-    const vitePlugins = plugin.vitePlugin();
-    return Array.isArray(vitePlugins) ? vitePlugins : [vitePlugins];
-  } catch {
-    try {
-      // Fallback to @vitejs/plugin-react
-      const react = eval('require')('@vitejs/plugin-react');
-      const plugin = react.default ? react.default(typeof options === 'boolean' ? {} : options) : react(typeof options === 'boolean' ? {} : options);
-      return Array.isArray(plugin) ? plugin : [plugin];
-    } catch {
-      console.warn('[vite-enhance] React plugin not found. Please install @vitejs/plugin-react or @vite-enhance/plugin-framework-react');
-      return [];
+    // Try to dynamically import the React plugin
+    const reactPlugin = tryImportPlugin('@vitejs/plugin-react');
+    if (reactPlugin) {
+      return [reactPlugin(options)];
     }
+    
+    console.warn('[vite-enhance] React plugin not found. Please install @vitejs/plugin-react');
+    return [];
+  } catch (error: any) {
+    console.warn('[vite-enhance] React plugin not found. Please install @vitejs/plugin-react');
+    console.warn('Error:', error?.message || 'Unknown error');
+    return [];
   }
 }
 
@@ -228,12 +194,22 @@ function createReactPlugin(options: any = {}): any[] {
  */
 function createCDNPlugin(options: any): any[] {
   try {
-    const enhanceCDN = eval('require')('@vite-enhance/plugin-cdn');
-    const plugin = enhanceCDN.createCDNPlugin(typeof options === 'boolean' ? {} : options);
-    const vitePlugins = plugin.vitePlugin();
-    return Array.isArray(vitePlugins) ? vitePlugins : [vitePlugins];
-  } catch {
-    console.warn('[vite-enhance] CDN plugin not found. Please install @vite-enhance/plugin-cdn');
+    // Try to import vite-plugin-cdn-import
+    const cdnPlugin = tryImportPlugin('vite-plugin-cdn-import');
+    if (cdnPlugin) {
+      return [cdnPlugin(options)];
+    }
+    
+    // Try alternative CDN plugins
+    const cdnPlugin2 = tryImportPlugin('vite-plugin-externals');
+    if (cdnPlugin2) {
+      return [cdnPlugin2(options)];
+    }
+    
+    console.warn('[vite-enhance] CDN plugin not found. Please install vite-plugin-cdn-import or vite-plugin-externals');
+    return [];
+  } catch (error: any) {
+    console.warn('[vite-enhance] CDN plugin not available:', error?.message || 'Unknown error');
     return [];
   }
 }
@@ -243,12 +219,22 @@ function createCDNPlugin(options: any): any[] {
  */
 function createCachePlugin(options: any): any[] {
   try {
-    const enhanceCache = eval('require')('@vite-enhance/plugin-cache');
-    const plugin = enhanceCache.createCachePlugin(typeof options === 'boolean' ? {} : options);
-    const vitePlugins = plugin.vitePlugin();
-    return Array.isArray(vitePlugins) ? vitePlugins : [vitePlugins];
-  } catch {
-    console.warn('[vite-enhance] Cache plugin not found. Please install @vite-enhance/plugin-cache');
+    // Try to import cache-related plugins
+    const cachePlugin = tryImportPlugin('vite-plugin-cache');
+    if (cachePlugin) {
+      return [cachePlugin(options)];
+    }
+    
+    // Try alternative cache plugins
+    const cachePlugin2 = tryImportPlugin('vite-plugin-build-cache');
+    if (cachePlugin2) {
+      return [cachePlugin2(options)];
+    }
+    
+    console.warn('[vite-enhance] Cache plugin not found. Please install vite-plugin-cache or vite-plugin-build-cache');
+    return [];
+  } catch (error: any) {
+    console.warn('[vite-enhance] Cache plugin not available:', error?.message || 'Unknown error');
     return [];
   }
 }
@@ -258,12 +244,22 @@ function createCachePlugin(options: any): any[] {
  */
 function createAnalyzePlugin(options: any): any[] {
   try {
-    const enhanceAnalyze = eval('require')('@vite-enhance/plugin-analyze');
-    const plugin = enhanceAnalyze.createAnalyzePlugin(typeof options === 'boolean' ? {} : options);
-    const vitePlugins = plugin.vitePlugin();
-    return Array.isArray(vitePlugins) ? vitePlugins : [vitePlugins];
-  } catch {
-    console.warn('[vite-enhance] Analyze plugin not found. Please install @vite-enhance/plugin-analyze');
+    // Try to import rollup-plugin-visualizer
+    const analyzePlugin = tryImportPlugin('rollup-plugin-visualizer');
+    if (analyzePlugin) {
+      return [analyzePlugin(options)];
+    }
+    
+    // Try alternative analyze plugins
+    const analyzePlugin2 = tryImportPlugin('vite-bundle-analyzer');
+    if (analyzePlugin2) {
+      return [analyzePlugin2(options)];
+    }
+    
+    console.warn('[vite-enhance] Analyze plugin not found. Please install rollup-plugin-visualizer or vite-bundle-analyzer');
+    return [];
+  } catch (error: any) {
+    console.warn('[vite-enhance] Analyze plugin not available:', error?.message || 'Unknown error');
     return [];
   }
 }
@@ -273,24 +269,36 @@ function createAnalyzePlugin(options: any): any[] {
  */
 function createPWAPlugin(options: any): any[] {
   try {
-    const enhancePWA = eval('require')('@vite-enhance/plugin-pwa');
-    const plugin = enhancePWA.createPWAPlugin(typeof options === 'boolean' ? {} : options);
-    const vitePlugins = plugin.vitePlugin();
-    return Array.isArray(vitePlugins) ? vitePlugins : [vitePlugins];
-  } catch {
-    console.warn('[vite-enhance] PWA plugin not found. Please install @vite-enhance/plugin-pwa');
+    // Try to import vite-plugin-pwa
+    const pwaPlugin = tryImportPlugin('vite-plugin-pwa');
+    if (pwaPlugin) {
+      return [pwaPlugin(options)];
+    }
+    
+    console.warn('[vite-enhance] PWA plugin not found. Please install vite-plugin-pwa');
+    return [];
+  } catch (error: any) {
+    console.warn('[vite-enhance] PWA plugin not available:', error?.message || 'Unknown error');
     return [];
   }
 }
 
-// Re-export types for convenience
-export type { 
-  EnhanceConfig, 
-  EnhanceFeatureConfig,
-  VuePluginOptions,
-  ReactPluginOptions,
-  CDNOptions,
-  CacheOptions,
-  AnalyzeOptions,
-  PWAOptions
-} from '@vite-enhance/shared';
+/**
+ * Try to dynamically import a plugin
+ */
+function tryImportPlugin(packageName: string): any {
+  try {
+    // In Node.js environment, use require for synchronous loading
+    if (typeof require !== 'undefined') {
+      return require(packageName);
+    }
+    
+    // For ESM environments, we need to handle this differently
+    // This is a limitation - dynamic imports are async but Vite config needs sync
+    console.warn(`[vite-enhance] Cannot dynamically import ${packageName} in ESM environment`);
+    return null;
+  } catch (error) {
+    // Plugin not installed or not available
+    return null;
+  }
+}

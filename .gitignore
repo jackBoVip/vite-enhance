@@ -4,8 +4,9 @@ node_modules/
 .pnpm-store/
 
 # Build outputs
-/dist/
-/build/
+dist/
+**/dist/
+**/build/
 *.tsbuildinfo
 
 # Environment files
@@ -16,6 +17,7 @@ node_modules/
 .env.production.local
 
 # IDE files
+.kiro/
 .vscode/
 .idea/
 *.swp

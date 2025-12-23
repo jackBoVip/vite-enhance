@@ -315,6 +315,51 @@ cdn({
 
 ---
 
+## 📦 依赖管理
+
+本项目使用 pnpm 的 workspace catalog 功能来集中管理所有依赖版本。
+
+### 添加新依赖
+
+1. 在 `pnpm-workspace.yaml` 的 catalog 中添加依赖版本：
+   ```yaml
+   catalog:
+     new-dependency: ^1.0.0
+   ```
+
+2. 在 package.json 中使用 catalog 语法引用：
+   ```json
+   {
+     "dependencies": {
+       "new-dependency": "catalog:"
+     }
+   }
+   ```
+
+### 更新依赖版本
+
+1. 在 `pnpm-workspace.yaml` catalog 中更新版本
+2. 运行 `pnpm install` 更新所有包
+3. 运行 `pnpm version:check` 验证一致性
+
+### 验证
+
+运行 `pnpm version:check` 来验证：
+- 所有外部依赖使用 catalog 引用
+- 所有 catalog 条目存在
+- 工作区依赖使用正确语法
+
+### 构建产物管理
+
+项目已配置 `.gitignore` 确保所有包的 `dist/` 目录不会被提交到 git：
+- 构建产物仅存在于本地
+- 每次构建都会重新生成
+- 保持仓库清洁，避免不必要的文件冲突
+
+详细信息请参考 [依赖管理指南](./DEPENDENCY_MANAGEMENT.md)。
+
+---
+
 ## 📦 未来规划
 
 * Monorepo 支持
