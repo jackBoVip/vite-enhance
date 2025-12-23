@@ -1,6 +1,6 @@
 {
   "name": "vite-enhance-kit",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A modular Vite enhancement toolkit for enterprise-grade frontend engineering",
   "private": true,
   "type": "module",
@@ -8,7 +8,7 @@
     "dev": "pnpm -r --parallel dev",
     "build": "pnpm build:shared && pnpm build:config && pnpm build:plugins && pnpm build:main",
     "build:shared": "pnpm --filter @vite-enhance/shared build",
-    "build:config": "pnpm --filter @vite-enhance/config build", 
+    "build:config": "pnpm --filter @vite-enhance/config build",
     "build:plugins": "pnpm --filter './packages/plugins/*' build",
     "build:main": "pnpm --filter vite-enhance build",
     "lint": "pnpm -r lint",
