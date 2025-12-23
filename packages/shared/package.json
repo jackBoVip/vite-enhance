@@ -1,0 +1,46 @@
+{
+  "name": "@vite-enhance/shared",
+  "version": "0.1.0",
+  "description": "Shared utilities, types, and logger for Vite Enhance Kit",
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "tsc --watch",
+    "build": "tsc",
+    "test": "vitest --run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "vite",
+    "shared",
+    "utilities",
+    "types"
+  ],
+  "author": "Vite Enhance Kit Team",
+  "license": "MIT",
+  "peerDependencies": {
+    "vite": "^7.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.0.3",
+    "typescript": "^5.0.0",
+    "vite": "^7.0.0",
+    "vitest": "^4.0.16"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

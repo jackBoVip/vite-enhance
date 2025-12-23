@@ -1,0 +1,24 @@
+{
+  "name": "cdn-example",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "vue": "^3.4.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "lodash": "^4.17.21",
+    "axios": "^1.13.2",
+    "antd": "^5.12.0"
+  },
+  "devDependencies": {
+    "@vite-enhance/config": "workspace:*",
+    "@vite-enhance/plugin-cdn": "workspace:*",
+    "vite": "^7.0.0",
+    "typescript": "^5.0.0"
+  }
+}

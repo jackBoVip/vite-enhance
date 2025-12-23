@@ -1,0 +1,43 @@
+{
+  "name": "@vite-enhance",
+  "version": "0.1.0",
+  "description": "Main entry point for Vite Enhance Kit",
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest --run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@vite-enhance/config": "workspace:*",
+    "@vite-enhance/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "vitest": "^4.0.16"
+  },
+  "peerDependencies": {
+    "vite": "^7.0.0"
+  },
+  "keywords": [
+    "vite",
+    "enhance",
+    "config",
+    "plugin"
+  ],
+  "author": "Vite Enhance Kit Team",
+  "license": "MIT"
+}

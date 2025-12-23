@@ -1,0 +1,43 @@
+{
+  "name": "@vite-enhance/plugin-cache",
+  "version": "0.1.0",
+  "description": "Build cache plugin for Vite Enhance Kit",
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest --run",
+    "test:watch": "vitest"
+  },
+  "keywords": [
+    "vite",
+    "cache",
+    "plugin",
+    "enhance"
+  ],
+  "author": "Vite Enhance Kit",
+  "license": "MIT",
+  "dependencies": {
+    "@vite-enhance/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^25.0.3",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.0",
+    "vitest": "^4.0.16"
+  }
+}

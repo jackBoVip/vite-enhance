@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@shared/*": ["./packages/shared/src/*"],
+      "@ui-lib/*": ["./packages/ui-lib/src/*"]
+    }
+  },
+  "references": [
+    { "path": "./packages/shared" },
+    { "path": "./packages/ui-lib" },
+    { "path": "./apps/web-app" },
+    { "path": "./apps/admin-app" }
+  ]
+}
