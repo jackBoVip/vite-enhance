@@ -8,10 +8,10 @@
 
 **Vite Enhance Kit** 是一个基于 Vite 的工程化增强工具包，提供：
 
-* 智能项目类型与框架识别（Vue / React）
+* 智能项目类型与框架识别（Vue / React / Svelte / Solid / Lit / Preact）
 * 应用构建（App）与库构建（Lib）的统一抽象
 * 官方维护的工程化插件生态
-* 企业级能力（CDN、内网支持、PWA、构建优化等）
+* 企业级能力（CDN、缓存、PWA、构建分析等）
 
 它 **不替代 Vite**，而是作为一层 *Enhance Layer*，让 Vite 在真实项目中更好用、更统一、更可治理。
 
@@ -21,7 +21,7 @@
 
 在真实的中大型项目中，前端工程往往面临以下问题：
 
-* 项目形态多样：Web（Vue / React）、组件库、Electron、React Native
+* 项目形态多样：Web（Vue / React / Svelte / Solid / Lit / Preact）、组件库、Electron、React Native
 * 仓库形态复杂：Monorepo + 多应用 + 多包
 * 构建诉求不一致：开发要快、CI 要稳、产物要小
 * 工程能力分散：CDN、缓存、PWA、Mock、规范各自为战
@@ -50,9 +50,10 @@
 | 维度 | 说明                   |
 | -- | -------------------- |
 | 定位 | Vite 工程化增强层          |
-| 适用 | Vue / React 应用 & 组件库 |
+| 适用 | Vue / React / Svelte / Solid / Lit / Preact 应用 & 组件库 |
 | 风格 | 约定优于配置、渐进增强          |
 | 用户 | 中大型项目、技术负责人、库作者      |
+| 特性 | 类型安全、插件化、可扩展      |
 
 对比同类方案：
 
@@ -89,12 +90,17 @@ import { defineEnhanceConfig } from 'vite-enhance'
 
 export default defineConfig(
   defineEnhanceConfig({
-    framework: 'auto', // 自动检测 Vue/React
+    // preset 会自动检测（app/lib），也可显式设置
+    // 框架会根据 package.json 中的依赖自动检测，无需配置
     plugins: {
-      cdn: true,        // CDN 外部化
-      pwa: true,        // PWA 支持
+      // 功能插件可按需启用
+      cdn: {
+        autoDetect: true, // 自动检测依赖
+        provider: 'jsdelivr'
+      },               // CDN 外部化
+      cache: true,      // 构建缓存
       analyze: true,    // 包分析
-      cache: true       // 构建缓存
+      pwa: true         // PWA 支持
     }
   })
 )
@@ -116,19 +122,27 @@ npm run build
 
 ### 🧩 多项目 / 多形态支持
 
-* Web 应用（Vue / React）
+* Web 应用（Vue / React / Svelte / Solid / Lit / Preact）
 * 组件库 / SDK（Lib 模式）
 * Electron（Main / Preload / Renderer）
 * React Native（工程配置与共享包层面）
+
+### 📦 包架构设计
+
+* `vite-enhance` - 主入口包
+* `@vite-enhance/config` - 配置处理包
+* `@vite-enhance/shared` - 共享类型与工具包
+* `@vite-enhance/plugin-*` - 官方插件包
 
 ---
 
 ### 🧠 智能工程识别
 
 * 自动识别 Vue / React
-* 自动识别 App / Lib
+* 自动识别 App / Lib (通过 package.json 配置检测)
 * 自动识别 Monorepo / Workspace
 * 自动加载匹配的官方插件
+* 框架自动检测功能（从项目依赖中检测使用的框架）
 
 ---
 
@@ -150,17 +164,17 @@ npm run build
 
 ### 🧩 官方插件生态
 
-* 框架插件（Vue / React）
-* CDN 插件（支持公网 & 内网 IP）
-* 构建压缩（gzip / brotli）
-* 构建分析（bundle / plugin）
-* PWA / Mock Server
+* 框架插件（Vue / React / Svelte / Solid / Lit / Preact）
+* CDN 插件（支持公网 & 内网 IP，包含自动检测功能）
+* 构建缓存插件（高性能缓存与智能失效机制）
+* 构建分析插件（包含构建时长统计功能）
+* PWA 插件
 
 ---
 
 ### ✅ 智能识别
 
-* 自动识别 Vue / React 项目
+* 自动识别 Vue / React / Svelte / Solid / Lit / Preact 项目
 * 自动判断 App / Lib 构建模式
 * 按需加载官方插件
 
@@ -171,28 +185,24 @@ npm run build
 
 ### ✅ 官方插件生态
 
-* Vue / React 支持
-* CDN（支持公网 & 内网 IP）
-* 压缩（gzip / brotli）
-* 构建分析
-* PWA
-* Mock Server
+* Vue / React / Svelte / Solid / Lit / Preact 支持（包含框架 DevTools 集成）
+* CDN（支持公网 & 内网 IP，支持自动检测依赖）
+* 构建缓存（基于文件哈希的智能缓存）
+* 构建分析（包含构建耗时统计）
+* PWA 支持
 
 ---
 
-## 🌐 CDN 插件示例（支持内网）
+## 🌐 CDN 插件示例（支持自动检测）
 
 ```ts
 cdn({
-  enabled: true,
-  provider: 'custom',
-  baseUrl: 'http://10.0.0.1:8080/cdn',
-  modules: {
-    react: {
-      var: 'React',
-      path: 'react.production.min.js'
-    }
-  }
+  autoDetect: true, // 自动检测 package.json 中的依赖
+  autoDetectDeps: 'dependencies', // 仅检测 dependencies
+  autoDetectExclude: ['@types/*'], // 排除某些依赖
+  modules: ['react', 'react-dom'], // 手动指定模块
+  provider: 'jsdelivr', // 支持 jsdelivr, unpkg, cdnjs
+  enableInDevMode: false // 生产环境才启用
 })
 ```
 
@@ -201,16 +211,25 @@ cdn({
 * 内网环境
 * 私有制品仓库
 * 离线部署场景
+* 自动外部化依赖
 
 ---
 
 ## 🧩 插件分级体系
 
-* **Core**：不可移除（项目识别、配置治理）
-* **Official**：官方维护（Vue / React / CDN / PWA 等）
+* **Core**：核心功能（配置治理、类型定义）
+* **Official**：官方维护（Vue / React / Svelte / Solid / Lit / Preact / CDN / Cache / Analyze / PWA 等）
 * **Community**：社区扩展
 
 > 插件有生命周期、有顺序、可治理。
+
+### 插件生命周期
+
+* `configResolved` - 配置解析完成
+* `buildStart` - 构建开始
+* `buildEnd` - 构建结束
+* `configureServer` - 服务器配置
+* `vitePlugin` - 返回 Vite 插件
 
 ---
 
@@ -272,37 +291,38 @@ cdn({
 
 为中大型项目提供可感知的构建性能优化能力。
 
-* 本地构建缓存（基于文件 Hash）
-* 增量构建（未变更模块跳过）
-* 可选远程缓存接口（预留）
-* 构建结果复用（CI / 本地）
+* 本地构建缓存（基于文件哈希，支持智能失效）
+* 模式匹配（支持自定义包含/排除规则）
+* 缓存清单（记录缓存元数据）
+* 性能优化（文件哈希缓存、模式匹配缓存）
 
 目标：
 
 * 减少重复构建时间
 * 提升 CI 稳定性
+* 智能缓存管理
 
 ---
 
-### 🛡️ 其他推荐增强能力（规划中）
+### 🛡️ 实际已实现功能
 
-#### 🔍 工程质量与规范
+#### 🛠️ 配置管理
 
-* ESLint / Prettier 预设集成
-* 构建前质量校验（Fail Fast）
-* 依赖安全扫描（可选）
+* 类型安全的配置 API
+* 配置验证与默认值
+* 向后兼容的配置结构
 
-#### 📊 可观测性
+#### 📊 构建分析
 
 * 构建性能指标输出
 * 构建报告（HTML / JSON）
 * 插件耗时分析
 
-#### 🔐 企业与私有化支持
+#### 🔐 企业级支持
 
-* 私有插件仓库
-* 企业内网模式（完全离线）
-* 构建产物合规检查
+* 内网 CDN 支持
+* 依赖自动外部化
+* 构建缓存优化
 
 ---
 
@@ -311,7 +331,7 @@ cdn({
 ### Phase 1 · 核心能力（当前）
 
 * App / Lib 双构建模型
-* Vue / React 自动识别
+* Vue / React / Svelte / Solid / Lit / Preact 自动识别
 * 官方插件体系
 * CDN（含内网）
 
@@ -417,11 +437,14 @@ pnpm build
 # 开发模式 (监听文件变化)
 pnpm dev
 
-# 运行测试
-pnpm test
-
 # 类型检查
 pnpm typecheck
+
+# 版本检查
+pnpm version:check
+
+# 同步依赖版本
+pnpm version:sync
 ```
 
 ---
@@ -429,3 +452,42 @@ pnpm typecheck
 ## 📄 License
 
 MIT
+
+---
+
+## 🏗️ 项目架构
+
+Vite Enhance Kit 采用 Monorepo 架构，包含多个功能包：
+
+### 包结构
+
+* **`packages/config`** - 配置处理核心逻辑
+  * `defineEnhanceConfig` - 主配置函数
+  * 配置验证与默认值处理
+  * Vite 配置转换
+
+* **`packages/shared`** - 共享类型与工具
+  * 类型定义（配置、插件等）
+  * 工具函数
+  * 日志工具
+
+* **`packages/vite-enhance`** - 主入口包
+  * 重新导出 config 包的功能
+  * 用户入口点
+
+* **`packages/plugins/*`** - 官方插件
+  * `analyze` - 构建分析插件
+  * `cache` - 构建缓存插件
+  * `cdn` - CDN 外部化插件
+  * `framework-*` - 框架支持插件（Vue / React / Svelte / Solid / Lit / Preact）
+  * `pwa` - PWA 支持插件
+
+### 插件架构
+
+每个插件都实现 `EnhancePlugin` 接口，包含：
+
+* `name` - 插件名称
+* `version` - 插件版本
+* `apply` - 应用环境（serve/build/both）
+* `vitePlugin()` - 返回 Vite 插件
+* 生命周期钩子函数

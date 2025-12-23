@@ -8,6 +8,10 @@ export interface EnhanceFeatureConfig {
   // 框架特定配置
   vue?: VuePluginOptions | boolean;
   react?: ReactPluginOptions | boolean;
+  svelte?: SveltePluginOptions | boolean;
+  solid?: SolidPluginOptions | boolean;
+  lit?: LitPluginOptions | boolean;
+  preact?: PreactPluginOptions | boolean;
   
   // 功能配置
   cdn?: CDNOptions | boolean;
@@ -76,6 +80,51 @@ export interface ReactPluginOptions {
   fastRefresh?: boolean;
   jsxRuntime?: 'automatic' | 'classic';
   jsxImportSource?: string;
+  babel?: {
+    plugins?: any[];
+    presets?: any[];
+  };
+  include?: RegExp;
+  exclude?: RegExp;
+}
+
+export interface SveltePluginOptions {
+  compilerOptions?: Record<string, any>;
+  preprocess?: any;
+  hot?: boolean;
+  ignorePluginPreprocessors?: boolean;
+  dynamicCompileOptions?: (filename: string) => Record<string, any>;
+  experimental?: Record<string, any>;
+}
+
+export interface SolidPluginOptions {
+  babel?: {
+    plugins?: any[];
+    presets?: any[];
+  };
+  extensions?: string[];
+  template?: {
+    tagName?: string;
+    attrName?: string;
+  };
+  hot?: boolean;
+  hydratable?: boolean;
+  generate?: 'dom' | 'ssr';
+  parserOptions?: Record<string, any>;
+  transformOptions?: Record<string, any>;
+}
+
+export interface LitPluginOptions {
+  compilerOptions?: Record<string, any>;
+  preprocess?: any;
+  absoluteImports?: boolean;
+  compileDebug?: boolean;
+  minify?: boolean;
+  polyfillsImport?: string[];
+}
+
+export interface PreactPluginOptions {
+  devtoolsInProd?: boolean;
   babel?: {
     plugins?: any[];
     presets?: any[];

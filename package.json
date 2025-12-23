@@ -6,7 +6,11 @@
   "type": "module",
   "scripts": {
     "dev": "pnpm -r --parallel dev",
-    "build": "pnpm -r build",
+    "build": "pnpm build:shared && pnpm build:config && pnpm build:plugins && pnpm build:main",
+    "build:shared": "pnpm --filter @vite-enhance/shared build",
+    "build:config": "pnpm --filter @vite-enhance/config build", 
+    "build:plugins": "pnpm --filter './packages/plugins/*' build",
+    "build:main": "pnpm --filter vite-enhance build",
     "lint": "pnpm -r lint",
     "clean": "pnpm -r clean",
     "typecheck": "pnpm -r typecheck",

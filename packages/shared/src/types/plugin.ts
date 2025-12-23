@@ -29,4 +29,4 @@ export interface PluginContext {
 }
 
 export type ProjectType = 'app' | 'lib' | 'monorepo';
-export type FrameworkType = 'vue' | 'react' | 'vanilla' | 'unknown';
+export type FrameworkType = 'vue' | 'react' | 'svelte' | 'solid' | 'lit' | 'preact' | 'vanilla' | 'unknown';
