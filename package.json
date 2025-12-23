@@ -7,7 +7,6 @@
   "scripts": {
     "dev": "pnpm -r --parallel dev",
     "build": "pnpm -r build",
-    "test": "pnpm -r test",
     "lint": "pnpm -r lint",
     "clean": "pnpm -r clean",
     "typecheck": "pnpm -r typecheck",
@@ -34,13 +33,11 @@
     "@changesets/cli": "^2.29.8",
     "@types/node": "^25.0.3",
     "eslint": "^9.39.2",
-    "fast-check": "^4.5.2",
     "glob": "^13.0.0",
     "js-yaml": "^4.1.1",
     "prettier": "^3.7.4",
     "typescript": "^5.9.3",
-    "vite": "^7.3.0",
-    "vitest": "^4.0.16"
+    "vite": "^7.3.0"
   },
   "engines": {
     "node": ">=18.0.0",

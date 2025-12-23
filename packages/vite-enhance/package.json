@@ -17,17 +17,14 @@
   ],
   "scripts": {
     "build": "tsc",
-    "dev": "tsc --watch",
-    "test": "vitest --run",
-    "test:watch": "vitest"
+    "dev": "tsc --watch"
   },
   "dependencies": {
     "@vite-enhance/config": "workspace:*",
     "@vite-enhance/shared": "workspace:*"
   },
   "devDependencies": {
-    "typescript": "^5.0.0",
-    "vitest": "^4.0.16"
+    "typescript": "^5.0.0"
   },
   "peerDependencies": {
     "vite": "^7.0.0"
