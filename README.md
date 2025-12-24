@@ -1,5 +1,7 @@
 # Vite Enhance Kit
 
+[English](./README.en.md) | 简体中文
+
 > 🚀 **一个位于 Vite 之上的工程化增强层，用最少的配置交付大厂级前端工程体验**
 
 ---
