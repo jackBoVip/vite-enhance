@@ -1,6 +1,6 @@
 {
   "name": "vite-enhance",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Main entry point for Vite Enhance Kit",
   "type": "module",
   "main": "dist/index.js",
@@ -20,11 +20,25 @@
     "dev": "tsc --watch"
   },
   "dependencies": {
-    "@vite-enhance/config": "workspace:*",
-    "@vite-enhance/shared": "workspace:*"
+    "zod": "catalog:",
+    "vite-plugin-pwa": "catalog:",
+    "rollup-plugin-visualizer": "catalog:",
+    "vite-plugin-cdn-import": "catalog:",
+    "vite-plugin-cache": "catalog:",
+    "@vitejs/plugin-vue": "catalog:",
+    "@vitejs/plugin-react": "catalog:",
+    "@sveltejs/vite-plugin-svelte": "catalog:",
+    "vite-plugin-solid": "catalog:",
+    "@preact/preset-vite": "catalog:",
+    "vite-plugin-vue-devtools": "catalog:",
+    "tar": "catalog:",
+    "archiver": "catalog:"
   },
   "devDependencies": {
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/tar": "catalog:",
+    "@types/archiver": "catalog:"
   },
   "peerDependencies": {
     "vite": "^7.3.0"
@@ -33,7 +47,11 @@
     "vite",
     "enhance",
     "config",
-    "plugin"
+    "plugin",
+    "frontend",
+    "build-tool",
+    "monorepo",
+    "engineering"
   ],
   "author": "Vite Enhance Kit Team",
   "license": "MIT",

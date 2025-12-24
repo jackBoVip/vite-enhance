@@ -27,18 +27,12 @@
     "resolveJsonModule": true,
     "forceConsistentCasingInFileNames": true,
     "incremental": true,
+    "types": ["node"],
     "baseUrl": ".",
-    "paths": {
-      "@vite-enhance/config": ["../config/src"],
-      "@vite-enhance/config/*": ["../config/src/*"],
-      "@vite-enhance/shared": ["../shared/src"],
-      "@vite-enhance/shared/*": ["../shared/src/*"]
-    }
+
   },
   "include": [
-    "src/**/*",
-    "../config/src/**/*",
-    "../shared/src/**/*"
+    "src/**/*"
   ],
   "exclude": [
     "node_modules",

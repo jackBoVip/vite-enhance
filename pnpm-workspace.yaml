@@ -1,7 +1,6 @@
 packages:
   - 'packages/*'
-  - 'packages/plugins/*'
-  - 'test-projects/*'
+  - 'examples/*'
 
 catalog:
   # Build Tools & Bundlers
@@ -17,15 +16,25 @@ catalog:
   # Framework Plugins
   "@vitejs/plugin-vue": ^6.0.3
   "@vitejs/plugin-react": ^5.1.2
+  "@sveltejs/vite-plugin-svelte": ^3.1.2
+  "vite-plugin-solid": ^2.11.0
+  "@preact/preset-vite": ^2.8.2
   
   # Development Tools
   vite-plugin-vue-devtools: ^8.0.5
   vite-plugin-pwa: ^1.2.0
   vite-plugin-cdn-import: ^1.0.1
+  vite-plugin-cache: ^1.4.8
   rollup-plugin-visualizer: ^6.0.5
   
   # Validation & Utilities
   zod: ^4.2.1
+  
+  # Compression
+  tar: ^7.4.3
+  archiver: ^7.0.1
+  "@types/tar": ^6.1.13
+  "@types/archiver": ^6.0.3
   
   # Framework Libraries
   vue: ^3.5.26
