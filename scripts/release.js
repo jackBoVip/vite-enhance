@@ -157,6 +157,18 @@ function publishPackages() {
 function pushToGit() {
   log('📤 Pushing to git...', 'blue');
   
+  // Check if there are catalog reference changes to commit
+  try {
+    const status = execSync('git status --porcelain', { encoding: 'utf8' });
+    if (status.trim()) {
+      log('📝 Committing catalog reference restoration changes...', 'blue');
+      exec('git add .');
+      exec('git commit -m "chore: restore catalog: protocol after release"');
+    }
+  } catch (error) {
+    log('⚠️  No catalog reference changes to commit', 'yellow');
+  }
+  
   exec('git push');
   exec('git push --tags');
   
