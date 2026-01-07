@@ -4,9 +4,7 @@
   "commit": false,
   "fixed": [
     [
-      "vite-enhance",
-      "@vite-enhance/shared",
-      "@vite-enhance/config"
+      "vite-enhance"
     ]
   ],
   "linked": [],
