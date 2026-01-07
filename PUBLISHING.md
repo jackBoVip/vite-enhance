@@ -79,6 +79,8 @@ git commit -m "chore: version packages"
 ```bash
 # 构建并发布
 pnpm build
+# changeset publish 会在发布前自动运行 prepublishOnly 脚本，
+# 该脚本会将 catalog: 协议替换为实际版本号
 pnpm changeset:publish
 
 # 推送更改和标签

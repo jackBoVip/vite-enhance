@@ -1,7 +1,7 @@
 import type { EnhanceConfig } from '../shared';
 
 /**
- * Default configuration values
+ * Default configuration values.
  */
 export const defaultConfig: Partial<EnhanceConfig> = {
   enhance: {

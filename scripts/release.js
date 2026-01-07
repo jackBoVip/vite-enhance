@@ -148,6 +148,9 @@ function publishPackages() {
   // Publish packages
   exec('pnpm changeset publish');
   
+  // Restore catalog references after publishing
+  exec('pnpm restore-catalog-refs');
+  
   log('✅ Packages published successfully', 'green');
 }
 

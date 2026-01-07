@@ -23,7 +23,9 @@
     "changeset:status": "changeset status",
     "release": "node scripts/release.js",
     "release:dry-run": "node scripts/release.js --dry-run",
-    "prepublishOnly": "pnpm build"
+    "replace-catalog-refs": "node scripts/replace-catalog-refs.js",
+    "restore-catalog-refs": "node scripts/restore-catalog-refs.js",
+    "prepublishOnly": "pnpm replace-catalog-refs && pnpm build"
   },
   "keywords": [
     "vite",
