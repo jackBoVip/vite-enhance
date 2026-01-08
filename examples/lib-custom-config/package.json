@@ -1,0 +1,15 @@
+{
+  "name": "lib-custom-config",
+  "version": "1.0.0",
+  "description": "Test custom lib config overrides",
+  "type": "module",
+  "main": "dist/custom.js",
+  "scripts": {
+    "build": "vite build"
+  },
+  "devDependencies": {
+    "vite": "^7.3.0",
+    "vite-enhance": "workspace:*",
+    "typescript": "^5.9.3"
+  }
+}

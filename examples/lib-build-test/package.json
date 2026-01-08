@@ -1,0 +1,17 @@
+{
+  "name": "lib-build-test",
+  "version": "1.0.0",
+  "description": "Test library build output directory",
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "vite build"
+  },
+  "devDependencies": {
+    "vite": "^7.3.0",
+    "vite-enhance": "workspace:*",
+    "typescript": "^5.9.3"
+  }
+}

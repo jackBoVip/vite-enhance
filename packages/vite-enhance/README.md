@@ -145,8 +145,8 @@ npm run build
 
 ### ⚙️ 统一构建与工程模型
 
-* 应用构建（App Preset）
-* 库构建（Lib Preset）
+* 应用构建（App Preset）- 输出到 `dist/包名` 目录
+* 库构建（Lib Preset）- 直接输出到 `dist` 目录
 * Web / 桌面 / 移动工程模型统一
 
 ---
@@ -187,6 +187,128 @@ npm run build
 * 构建缓存（基于文件哈希的智能缓存）
 * 构建分析（包含构建耗时统计）
 * PWA 支持
+
+---
+
+## 📁 构建输出目录优化
+
+vite-enhance 根据项目类型智能管理构建输出目录，并为库构建提供开箱即用的默认配置。
+
+### 库构建 (Lib Preset)
+
+#### 默认配置
+
+当 `preset` 设置为 `lib` 时，vite-enhance 会自动提供以下默认配置：
+
+```typescript
+{
+  build: {
+    outDir: 'dist',  // 直接输出到 dist 目录
+    lib: {
+      entry: 'src/index.ts',  // 默认入口文件
+      name: '包名',            // 使用 package.json 中的 name
+      formats: ['es', 'cjs'], // 输出 ES Module 和 CommonJS 格式
+      fileName: (format) => `index.${format === 'es' ? 'mjs' : 'cjs'}`
+    }
+  }
+}
+```
+
+#### 输出结构
+
+```
+项目根目录/
+└── dist/              # 直接输出到 dist 目录
+    ├── index.mjs      # ES Module 格式
+    └── index.cjs      # CommonJS 格式
+```
+
+#### 使用示例
+
+**最简配置**（使用所有默认值）：
+```typescript
+export default defineConfig(
+  defineEnhanceConfig({
+    enhance: {
+      preset: 'lib'
+    }
+  })
+)
+```
+
+**自定义配置**（用户配置优先）：
+```typescript
+export default defineConfig(
+  defineEnhanceConfig({
+    enhance: {
+      preset: 'lib'
+    },
+    vite: {
+      build: {
+        lib: {
+          entry: 'src/main.ts',      // 自定义入口
+          name: 'MyLib',              // 自定义名称
+          formats: ['es', 'umd'],     // 自定义格式
+          fileName: 'custom'          // 自定义文件名
+        }
+      }
+    }
+  })
+)
+```
+
+### 应用构建 (App Preset)
+### 应用构建 (App Preset)
+
+#### 输出结构
+
+```
+项目根目录/
+└── dist/
+    └── 包名/          # 输出到 dist/包名 目录
+        ├── index.html
+        └── assets/
+            └── *.js
+```
+
+### 配置优先级
+
+1. **用户配置优先**: 如果用户在 `vite.build` 中提供了配置，将优先使用用户配置
+2. **智能合并**: 用户配置会与默认配置合并，用户配置的字段会覆盖默认值
+3. **完全自定义**: 可以通过 `vite.build.outDir` 完全自定义输出目录
+
+### 配置示例
+
+```ts
+// 库构建 - 直接输出到 dist
+export default defineConfig(
+  defineEnhanceConfig({
+    enhance: {
+      preset: 'lib'
+    }
+  })
+)
+
+// 应用构建 - 输出到 dist/包名
+export default defineConfig(
+  defineEnhanceConfig({
+    enhance: {
+      preset: 'app'
+    }
+  })
+)
+
+// 自定义输出目录
+export default defineConfig(
+  defineEnhanceConfig({
+    vite: {
+      build: {
+        outDir: 'custom-output'  // 覆盖默认输出目录
+      }
+    }
+  })
+)
+```
 
 ---
 

@@ -38,6 +38,7 @@
   "license": "MIT",
   "devDependencies": {
     "@changesets/cli": "catalog:",
+    "@vben/tsconfig": "workspace:*",
     "@types/node": "catalog:",
     "eslint": "catalog:",
     "glob": "catalog:",
