@@ -1,5 +1,15 @@
 # vite-enhance
 
+## 0.3.1
+
+### Patch Changes
+
+- 修复库构建时的 Rollup 混合导出警告
+  - 自动为库构建添加 `rollupOptions.output.exports: "named"` 配置
+  - 消除 "Entry module is using named and default exports together" 警告
+  - 智能合并用户自定义的 rollupOptions 配置
+  - 更新 TROUBLESHOOTING.md 文档
+
 ## 0.3.0
 
 ### Minor Changes

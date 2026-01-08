@@ -41,9 +41,6 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 25.0.3
-      '@vben/tsconfig':
-        specifier: workspace:*
-        version: link:examples/tsconfig
       eslint:
         specifier: 'catalog:'
         version: 9.39.2
@@ -72,12 +69,6 @@ importers:
         specifier: workspace:*
         version: link:../../packages/vite-enhance
 
-  examples/design:
-    devDependencies:
-      vite-enhance:
-        specifier: workspace:*
-        version: link:../../packages/vite-enhance
-
   examples/lib-build-test:
     devDependencies:
       typescript:
@@ -101,12 +92,6 @@ importers:
       vite-enhance:
         specifier: workspace:*
         version: link:../../packages/vite-enhance
-
-  examples/tsconfig:
-    dependencies:
-      vite:
-        specifier: 'catalog:'
-        version: 7.3.0(@types/node@25.0.3)(terser@5.44.1)
 
   examples/vue-ts-demo:
     dependencies:

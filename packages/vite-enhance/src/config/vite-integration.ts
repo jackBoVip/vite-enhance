@@ -30,6 +30,48 @@ function getPackageName(): string {
 }
 
 /**
+ * 获取构建输出目录
+ * 库构建直接输出到 dist，应用构建输出到 dist/包名
+ */
+function getBuildOutDir(preset: string | { name: string; options?: Record<string, unknown> } | undefined): string {
+  const presetName = typeof preset === 'string' ? preset : preset?.name;
+  
+  // 库构建直接输出到 dist 目录
+  if (presetName === 'lib') {
+    return 'dist';
+  }
+  
+  // 应用构建输出到 dist/包名 目录
+  const packageName = getPackageName();
+  return `dist/${packageName}`;
+}
+
+/**
+ * 获取默认的库构建配置
+ */
+function getDefaultLibConfig() {
+  const packageName = getPackageName();
+  
+  return {
+    entry: 'src/index.ts',
+    name: packageName,
+    formats: ['es', 'cjs'] as const,
+    fileName: (format: string) => `index.${format === 'es' ? 'mjs' : 'cjs'}`
+  };
+}
+
+/**
+ * 获取默认的 Rollup 输出配置
+ */
+function getDefaultRollupOptions() {
+  return {
+    output: {
+      exports: 'named' as const, // 使用命名导出，避免混合导出警告
+    }
+  };
+}
+
+/**
  * Convert EnhanceConfig to ViteConfig for direct Vite usage
  * Only supports the new nested structure
  */
@@ -37,15 +79,51 @@ export function createViteConfig(config: EnhanceConfig): ViteUserConfig {
   // Normalize config to handle the new nested structure
   const normalizedConfig = normalizeConfig(config);
   
-  // Get package name for output directory
-  const packageName = getPackageName();
+  // Get output directory based on preset
+  const outDir = getBuildOutDir(normalizedConfig.preset);
+  
+  // 检查是否为库构建
+  const isLibBuild = (typeof normalizedConfig.preset === 'string' ? normalizedConfig.preset : normalizedConfig.preset?.name) === 'lib';
+  
+  // 为库构建提供默认配置
+  const buildConfig: any = {
+    ...config.vite?.build,
+    outDir: config.vite?.build?.outDir || outDir,
+  };
+  
+  // 如果是库构建且用户没有配置 lib，则使用默认配置
+  if (isLibBuild) {
+    if (!config.vite?.build?.lib) {
+      buildConfig.lib = getDefaultLibConfig();
+    } else {
+      // 用户配置了 lib，合并默认配置（用户配置优先）
+      const defaultLib = getDefaultLibConfig();
+      buildConfig.lib = {
+        ...defaultLib,
+        ...config.vite.build.lib,
+      };
+    }
+    
+    // 添加默认的 Rollup 配置
+    if (!config.vite?.build?.rollupOptions) {
+      buildConfig.rollupOptions = getDefaultRollupOptions();
+    } else {
+      // 合并用户的 rollupOptions
+      const defaultRollup = getDefaultRollupOptions();
+      buildConfig.rollupOptions = {
+        ...defaultRollup,
+        ...config.vite.build.rollupOptions,
+        output: {
+          ...defaultRollup.output,
+          ...(config.vite.build.rollupOptions.output || {}),
+        }
+      };
+    }
+  }
   
   const viteConfig: ViteUserConfig = {
     ...config.vite,
-    build: {
-      ...config.vite?.build,
-      outDir: config.vite?.build?.outDir || `dist/${packageName}`,
-    },
+    build: buildConfig,
     plugins: [
       ...(config.vite?.plugins || []),
       ...(config.plugins || []),
