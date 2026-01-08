@@ -2,7 +2,7 @@ import { defineEnhanceConfig } from 'vite-enhance'
 
 export default defineEnhanceConfig({
   enhance: {
-    preset: 'lib',
+    preset:'lib',
     compress: false
   }
   // 无需配置 vite.build.lib，会自动使用默认配置：

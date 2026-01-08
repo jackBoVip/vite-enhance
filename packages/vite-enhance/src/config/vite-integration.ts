@@ -336,132 +336,109 @@ function detectFramework(config: EnhanceFeatureConfig): 'vue' | 'react' | 'svelt
 }
 
 /**
+ * Check if a path points to a library output directory
+ */
+function isLibraryPath(filePath: string): boolean {
+  return filePath.includes('dist/') || 
+         filePath.includes('lib/') || 
+         filePath.includes('es/');
+}
+
+/**
+ * Check if package.json has strong library indicators
+ */
+function hasStrongLibraryIndicators(packageJson: any): boolean {
+  // Check for library entry points (main/module/types)
+  const hasLibraryEntryPoints = (
+    (packageJson.main && isLibraryPath(packageJson.main)) ||
+    (packageJson.module && isLibraryPath(packageJson.module)) ||
+    packageJson.types ||
+    packageJson.typings
+  );
+  
+  // Check for exports field (object structure indicates library)
+  const hasExportsField = (
+    packageJson.exports &&
+    typeof packageJson.exports === 'object'
+  );
+  
+  // Return true if either check passes
+  return hasLibraryEntryPoints || hasExportsField;
+}
+
+/**
+ * Check if project has app-specific indicators
+ */
+function hasAppIndicators(): boolean {
+  try {
+    // Check for HTML entry files
+    const commonHtmlFiles = [
+      'index.html',
+      'public/index.html',
+      'src/index.html',
+      'index.htm',
+      'public/index.htm',
+      'src/index.htm'
+    ];
+    
+    for (const htmlFile of commonHtmlFiles) {
+      const htmlPath = path.join(process.cwd(), htmlFile);
+      if (fs.existsSync(htmlPath)) {
+        return true;
+      }
+    }
+    
+    // Check for common app directories
+    const appDirs = ['public', 'assets', 'static'];
+    for (const dir of appDirs) {
+      const dirPath = path.join(process.cwd(), dir);
+      if (fs.existsSync(dirPath) && fs.statSync(dirPath).isDirectory()) {
+        return true;
+      }
+    }
+    
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Detect project preset (app or lib) from package.json and project structure
  */
 function detectPreset(): 'app' | 'lib' {
   try {
-    const fs = require('fs');
-    const path = require('path');
     const packageJsonPath = path.join(process.cwd(), 'package.json');
     
-    if (fs.existsSync(packageJsonPath)) {
-      const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
-      
-      // Check for library-specific indicators
-      // Libraries typically have build configuration for multiple formats
-      if (
-        packageJson.main || // CommonJS entry
-        packageJson.module || // ES Module entry
-        packageJson.types || // TypeScript declaration
-        packageJson.typings || // TypeScript declaration
-        (packageJson.exports && // Multiple export points
-          (typeof packageJson.exports === 'object' || 
-           (typeof packageJson.exports === 'string' && packageJson.exports.includes('dist/')))
-        )
-      ) {
-        // Additional checks to differentiate from apps that might have these fields
-        const scripts = packageJson.scripts || {};
-        
-        // Check for library-specific scripts
-        const libScripts = ['build:lib', 'build:esm', 'build:cjs', 'build:umd', 'build:iife', 'prebuild', 'postbuild'];
-        for (const script of libScripts) {
-          if (scripts[script]) {
-            return 'lib';
-          }
-        }
-        
-        // Check for library-specific dependencies
-        const libDeps = ['rollup', '@rollup', 'vite-plugin-dts', 'unbuild', '@microsoft/api-extractor'];
-        const allDeps = {
-          ...packageJson.dependencies,
-          ...packageJson.devDependencies,
-          ...packageJson.peerDependencies,
-        };
-        
-        for (const dep of libDeps) {
-          if (allDeps[dep] || Object.keys(allDeps).some(d => d.startsWith(dep))) {
-            return 'lib';
-          }
-        }
-        
-        // If it has main/module/types but no library-specific scripts/dependencies,
-        // check if it's more likely a library by looking for build output patterns
-        if (packageJson.main && (packageJson.main.includes('dist/') || packageJson.main.includes('lib/') || packageJson.main.includes('es/'))) {
-          return 'lib';
-        }
-        
-        if (packageJson.module && (packageJson.module.includes('dist/') || packageJson.module.includes('es/'))) {
-          return 'lib';
-        }
-      }
-      
-      // Check for app-specific indicators
-      // Apps typically have dev/build/start scripts
-      const appScripts = ['dev', 'start', 'serve', 'preview'];
-      const scripts = packageJson.scripts || {};
-      for (const script of appScripts) {
-        if (scripts[script]) {
-          // Check if it doesn't have library characteristics
-          if (!packageJson.main || !packageJson.main.includes('dist/')) {
-            return 'app';
-          }
-        }
-      }
-      
-      // Additional check: if it has a browser field or a "build" script that suggests app building
-      if (packageJson.browser && typeof packageJson.browser === 'string') {
-        // Browser field often indicates an app that targets browsers
-        return 'app';
-      }
-      
-      // Check for frontend entry files (HTML) which indicate app projects
-      const commonHtmlFiles = [
-        'index.html',
-        'public/index.html',
-        'src/index.html',
-        'index.htm',
-        'public/index.htm',
-        'src/index.htm'
-      ];
-      
-      for (const htmlFile of commonHtmlFiles) {
-        const htmlPath = path.join(process.cwd(), htmlFile);
-        if (fs.existsSync(htmlPath)) {
-          // Read the HTML file to check for framework-specific indicators
-          try {
-            const htmlContent = fs.readFileSync(htmlPath, 'utf-8');
-            
-            // Look for framework-specific indicators in the HTML
-            if (
-              htmlContent.includes('id="app"') ||
-              htmlContent.includes('id="root"') ||
-              htmlContent.includes('div id=') && (htmlContent.includes('app') || htmlContent.includes('root')) ||
-              htmlContent.includes('data-') && htmlContent.includes('app') ||
-              htmlContent.includes('mount')
-            ) {
-              return 'app';
-            }
-          } catch {
-            // If there's an error reading the HTML file, continue checking
-          }
-        }
-      }
-      
-      // Additional check: Look for common app directories
-      const appDirs = ['public', 'assets', 'static'];
-      for (const dir of appDirs) {
-        const dirPath = path.join(process.cwd(), dir);
-        if (fs.existsSync(dirPath) && fs.statSync(dirPath).isDirectory()) {
-          return 'app';
-        }
-      }
+    if (!fs.existsSync(packageJsonPath)) {
+      console.warn('[vite-enhance] package.json not found, defaulting to app preset');
+      return 'app';
     }
-  } catch {
-    // If there's an error in detection, default to 'app'
+    
+    let packageJson;
+    try {
+      packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
+    } catch (error) {
+      console.warn('[vite-enhance] Failed to parse package.json, defaulting to app preset');
+      return 'app';
+    }
+    
+    // Check for strong library indicators first (early return)
+    if (hasStrongLibraryIndicators(packageJson)) {
+      return 'lib';
+    }
+    
+    // Check for app indicators
+    if (hasAppIndicators()) {
+      return 'app';
+    }
+    
+    // Default to 'app' if no clear indicators found
+    return 'app';
+  } catch (error) {
+    console.warn('[vite-enhance] Error during preset detection, defaulting to app preset:', error);
+    return 'app';
   }
-  
-  // Default to 'app' if no clear indicators found
-  return 'app';
 }
 
 /**

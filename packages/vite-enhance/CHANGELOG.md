@@ -1,5 +1,17 @@
 # vite-enhance
 
+## 0.3.2
+
+### Patch Changes
+
+- Fix library preset auto-detection for projects with standard package.json fields
+  - Improved `detectPreset()` function to correctly identify library projects
+  - Added early return when strong library indicators (main/module/exports/types) are found
+  - Removed unnecessary checks for lib-specific scripts/dependencies
+  - Fixed ESM compatibility issues with require() calls
+  - Enhanced error handling with proper logging
+  - Library projects with main/module/types/exports fields now auto-detect correctly without explicit preset configuration
+
 ## 0.3.1
 
 ### Patch Changes
