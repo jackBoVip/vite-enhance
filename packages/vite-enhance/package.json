@@ -1,6 +1,6 @@
 {
   "name": "vite-enhance",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Main entry point for Vite Enhance Kit",
   "type": "module",
   "main": "dist/index.js",
