@@ -1,6 +1,7 @@
 {
   "name": "lib-build-test",
   "version": "1.0.0",
+  "private": true,
   "description": "Test library build output directory",
   "type": "module",
   "main": "./dist/index.cjs",
