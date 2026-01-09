@@ -1,5 +1,14 @@
 # vite-enhance
 
+## 0.3.3
+
+### Patch Changes
+
+- Relax Vite peer dependency to support Vite 5.x, 6.x, and 7.x
+  - Changed peer dependency from `^7.3.0` to `^5.0.0 || ^6.0.0 || ^7.0.0`
+  - Improves compatibility with projects using older Vite versions
+  - Fixes peer dependency warnings for Vite 5.x and 6.x users
+
 ## 0.3.2
 
 ### Patch Changes
