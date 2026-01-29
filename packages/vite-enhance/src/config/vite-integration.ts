@@ -1,200 +1,160 @@
-import type { UserConfig as ViteUserConfig } from 'vite';
-import type { EnhanceConfig, EnhanceFeatureConfig } from '../shared';
-import { createRequire } from 'module';
-import * as fs from 'fs';
-import * as path from 'path';
-import { compressPlugin } from '../plugins/compress/index.js';
+import type { UserConfig as ViteUserConfig, Plugin as VitePlugin, LibraryFormats } from 'vite';
+import type { 
+  EnhanceConfig, 
+  EnhanceFeatureConfig, 
+  CDNOptions, 
+  CacheOptions, 
+  AnalyzeOptions, 
+  PWAOptions,
+  VuePluginOptions,
+} from '../shared/index.js';
+import { getPackageName } from '../shared/package-utils.js';
+import { createLogger } from '../shared/logger.js';
+import { detectFramework, detectPreset } from './detectors.js';
+import { createFrameworkPlugin, tryImportPlugin } from './plugin-factory.js';
+import { createCompressPlugin } from '../plugins/compress/index.js';
+import { createCDNPlugin } from '../plugins/cdn/index.js';
 
-
-/**
- * 从包名中移除特殊字符
- */
-function sanitizePackageName(name: string): string {
-  return name.replace(/[@\/]/g, '-').replace(/[^a-zA-Z0-9\-_.]/g, '');
-}
-
-/**
- * 获取包名
- */
-function getPackageName(): string {
-  try {
-    const packageJsonPath = path.join(process.cwd(), 'package.json');
-    if (fs.existsSync(packageJsonPath)) {
-      const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
-      return sanitizePackageName(packageJson.name || 'package');
-    }
-  } catch (error) {
-    // Ignore errors
-  }
-  return 'package';
-}
+const logger = createLogger('vite-integration');
 
 /**
- * 获取构建输出目录
- * 库构建直接输出到 dist，应用构建输出到 dist/包名
+ * Get build output directory based on preset
  */
-function getBuildOutDir(preset: string | { name: string; options?: Record<string, unknown> } | undefined): string {
+function getBuildOutDir(preset: string | { name: string } | undefined): string {
   const presetName = typeof preset === 'string' ? preset : preset?.name;
   
-  // 库构建直接输出到 dist 目录
   if (presetName === 'lib') {
     return 'dist';
   }
   
-  // 应用构建输出到 dist/包名 目录
-  const packageName = getPackageName();
-  return `dist/${packageName}`;
+  return `dist/${getPackageName()}`;
 }
 
 /**
- * 获取默认的库构建配置
+ * Get default library build configuration
  */
-function getDefaultLibConfig() {
-  const packageName = getPackageName();
-  
+function getDefaultLibConfig(): {
+  entry: string;
+  name: string;
+  formats: LibraryFormats[];
+  fileName: (format: string) => string;
+} {
   return {
     entry: 'src/index.ts',
-    name: packageName,
-    formats: ['es', 'cjs'] as const,
-    fileName: (format: string) => `index.${format === 'es' ? 'mjs' : 'cjs'}`
+    name: getPackageName(),
+    formats: ['es', 'cjs'] as LibraryFormats[],
+    fileName: (format: string) => `index.${format === 'es' ? 'mjs' : 'cjs'}`,
   };
 }
 
 /**
- * 获取默认的 Rollup 输出配置
+ * Get default Rollup output options
  */
-function getDefaultRollupOptions() {
+function getDefaultRollupOptions(): { output: { exports: 'named' } } {
   return {
     output: {
-      exports: 'named' as const, // 使用命名导出，避免混合导出警告
-    }
+      exports: 'named' as const,
+    },
   };
 }
 
 /**
- * Convert EnhanceConfig to ViteConfig for direct Vite usage
- * Only supports the new nested structure
- */
-export function createViteConfig(config: EnhanceConfig): ViteUserConfig {
-  // Normalize config to handle the new nested structure
-  const normalizedConfig = normalizeConfig(config);
-  
-  // Get output directory based on preset
-  const outDir = getBuildOutDir(normalizedConfig.preset);
-  
-  // 检查是否为库构建
-  const isLibBuild = (typeof normalizedConfig.preset === 'string' ? normalizedConfig.preset : normalizedConfig.preset?.name) === 'lib';
-  
-  // 为库构建提供默认配置
-  const buildConfig: any = {
-    ...config.vite?.build,
-    outDir: config.vite?.build?.outDir || outDir,
-  };
-  
-  // 如果是库构建且用户没有配置 lib，则使用默认配置
-  if (isLibBuild) {
-    if (!config.vite?.build?.lib) {
-      buildConfig.lib = getDefaultLibConfig();
-    } else {
-      // 用户配置了 lib，合并默认配置（用户配置优先）
-      const defaultLib = getDefaultLibConfig();
-      buildConfig.lib = {
-        ...defaultLib,
-        ...config.vite.build.lib,
-      };
-    }
-    
-    // 添加默认的 Rollup 配置
-    if (!config.vite?.build?.rollupOptions) {
-      buildConfig.rollupOptions = getDefaultRollupOptions();
-    } else {
-      // 合并用户的 rollupOptions
-      const defaultRollup = getDefaultRollupOptions();
-      buildConfig.rollupOptions = {
-        ...defaultRollup,
-        ...config.vite.build.rollupOptions,
-        output: {
-          ...defaultRollup.output,
-          ...(config.vite.build.rollupOptions.output || {}),
-        }
-      };
-    }
-  }
-  
-  const viteConfig: ViteUserConfig = {
-    ...config.vite,
-    build: buildConfig,
-    plugins: [
-      ...(config.vite?.plugins || []),
-      ...(config.plugins || []),
-      ...createEnhancePlugins(normalizedConfig),
-    ],
-  };
-
-  return viteConfig;
-}
-
-/**
- * Normalize config to handle the new nested structure
+ * Normalize config to extract enhance features
  */
 function normalizeConfig(config: EnhanceConfig): EnhanceFeatureConfig {
-  // If using new nested structure, use it directly
   if (config.enhance) {
-    let normalized = { ...config.enhance };
+    const normalized = { ...config.enhance };
     
-    // Auto-detect preset if not explicitly provided
     if (normalized.preset === undefined) {
-      normalized.preset = detectPreset();
+      const detected = detectPreset();
+      // Only use 'app' or 'lib', ignore 'monorepo'
+      normalized.preset = detected === 'monorepo' ? 'app' : detected;
     }
     
     return normalized;
   }
   
-  // If no nested structure, return an empty config
   return {};
 }
 
 /**
- * Create Vite plugins from normalized EnhanceConfig
+ * Convert EnhanceConfig to ViteConfig
  */
-function createEnhancePlugins(config: EnhanceFeatureConfig): any[] {
-  const plugins: any[] = [];
-
-  // Add preset plugins
-  if (config.preset) {
-    plugins.push(...createPresetPlugins(config.preset, config));
+export function createViteConfig(config: EnhanceConfig): ViteUserConfig {
+  const normalizedConfig = normalizeConfig(config);
+  const outDir = getBuildOutDir(normalizedConfig.preset);
+  const presetName = typeof normalizedConfig.preset === 'string' 
+    ? normalizedConfig.preset 
+    : normalizedConfig.preset?.name;
+  const isLibBuild = presetName === 'lib';
+  
+  // Build configuration - handle null/undefined safely
+  const viteBuild = config.vite?.build;
+  const buildConfig: ViteUserConfig['build'] = {
+    ...(viteBuild && typeof viteBuild === 'object' ? viteBuild : {}),
+    outDir: viteBuild?.outDir || outDir,
+  };
+  
+  // Library build defaults
+  if (isLibBuild) {
+    const defaultLib = getDefaultLibConfig();
+    const defaultRollup = getDefaultRollupOptions();
+    
+    buildConfig.lib = viteBuild?.lib
+      ? { ...defaultLib, ...viteBuild.lib }
+      : defaultLib;
+    
+    const rollupOptions = viteBuild?.rollupOptions;
+    const rollupOutput = rollupOptions?.output;
+    
+    buildConfig.rollupOptions = rollupOptions
+      ? {
+          ...defaultRollup,
+          ...rollupOptions,
+          output: {
+            ...defaultRollup.output,
+            ...(rollupOutput && typeof rollupOutput === 'object' && !Array.isArray(rollupOutput) 
+              ? rollupOutput as Record<string, unknown> 
+              : {}),
+          },
+        }
+      : defaultRollup;
   }
-
-  return plugins;
+  
+  // Collect all plugins - ensure arrays
+  const vitePlugins = config.vite?.plugins;
+  const extraPlugins = config.plugins;
+  
+  const plugins: VitePlugin[] = [
+    ...(Array.isArray(vitePlugins) ? vitePlugins as VitePlugin[] : []),
+    ...(Array.isArray(extraPlugins) ? extraPlugins as VitePlugin[] : []),
+    ...createEnhancePlugins(normalizedConfig),
+  ];
+  
+  return {
+    ...config.vite,
+    build: buildConfig,
+    plugins,
+  };
 }
 
 /**
- * Create plugins for a preset
+ * Create Vite plugins from EnhanceConfig
  */
-function createPresetPlugins(preset: string | { name: string; options?: Record<string, unknown> }, config: EnhanceFeatureConfig): any[] {
-  const presetName = typeof preset === 'string' ? preset : preset.name;
-  const plugins: any[] = [];
+function createEnhancePlugins(config: EnhanceFeatureConfig): VitePlugin[] {
+  const plugins: VitePlugin[] = [];
+  const presetName = typeof config.preset === 'string' 
+    ? config.preset 
+    : config.preset?.name || 'app';
 
-  switch (presetName) {
-    case 'app':
-      // Add framework plugins
-      plugins.push(...createFrameworkPlugins(config));
-      // Add feature plugins
-      plugins.push(...createFeaturePlugins(config));
-      break;
+  // Framework plugins
+  plugins.push(...createFrameworkPlugins(config));
 
-    case 'lib':
-      // Add framework plugins for library
-      plugins.push(...createFrameworkPlugins(config));
-      // Add compress plugin for library builds
-      if (config.compress !== false) {
-        plugins.push(...createCompressPlugin(config.compress));
-      }
-      // Add analyze plugin if enabled
-      if (config.analyze) {
-        plugins.push(...createAnalyzePlugin(config.analyze));
-      }
-      break;
+  // Feature plugins based on preset
+  if (presetName === 'app') {
+    plugins.push(...createAppFeaturePlugins(config));
+  } else if (presetName === 'lib') {
+    plugins.push(...createLibFeaturePlugins(config));
   }
 
   return plugins;
@@ -203,51 +163,32 @@ function createPresetPlugins(preset: string | { name: string; options?: Record<s
 /**
  * Create framework-specific plugins
  */
-function createFrameworkPlugins(config: EnhanceFeatureConfig): any[] {
-  const plugins: any[] = [];
-  
-  // Detect framework once
+function createFrameworkPlugins(config: EnhanceFeatureConfig): VitePlugin[] {
+  const plugins: VitePlugin[] = [];
   const detectedFramework = detectFramework(config);
 
-  // Vue plugin
-  if (config.vue !== false) {
-    if (detectedFramework === 'vue' || config.vue) {
-      plugins.push(...createVuePlugin(config.vue));
-    }
-  }
+  // Map of framework to config key
+  const frameworks = ['vue', 'react', 'svelte', 'solid', 'lit', 'preact'] as const;
 
-  // React plugin
-  if (config.react !== false) {
-    if (detectedFramework === 'react' || config.react) {
-      plugins.push(...createReactPlugin(config.react));
-    }
-  }
-  
-  // Svelte plugin
-  if (config.svelte !== false) {
-    if (detectedFramework === 'svelte' || config.svelte) {
-      plugins.push(...createSveltePlugin(config.svelte));
-    }
-  }
-  
-  // Solid plugin
-  if (config.solid !== false) {
-    if (detectedFramework === 'solid' || config.solid) {
-      plugins.push(...createSolidPlugin(config.solid));
-    }
-  }
-  
-  // Lit plugin
-  if (config.lit !== false) {
-    if (detectedFramework === 'lit' || config.lit) {
-      plugins.push(...createLitPlugin(config.lit));
-    }
-  }
-  
-  // Preact plugin
-  if (config.preact !== false) {
-    if (detectedFramework === 'preact' || config.preact) {
-      plugins.push(...createPreactPlugin(config.preact));
+  for (const framework of frameworks) {
+    const configValue = config[framework];
+    
+    // Skip if explicitly disabled
+    if (configValue === false) continue;
+    
+    // Create plugin if explicitly configured or auto-detected
+    if (configValue || detectedFramework === framework) {
+      // Handle null case: typeof null === 'object'
+      const options = (typeof configValue === 'object' && configValue !== null) ? configValue : {};
+      plugins.push(...createFrameworkPlugin(framework, options as Record<string, unknown>));
+      
+      // Add Vue DevTools if Vue
+      if (framework === 'vue' && typeof configValue === 'object' && configValue !== null) {
+        const vueOptions = configValue as VuePluginOptions;
+        if (vueOptions.devtools && vueOptions.devtools.enabled !== false) {
+          plugins.push(...createVueDevToolsPlugin(vueOptions.devtools));
+        }
+      }
     }
   }
 
@@ -255,501 +196,114 @@ function createFrameworkPlugins(config: EnhanceFeatureConfig): any[] {
 }
 
 /**
- * Create feature plugins
+ * Create Vue DevTools plugin
  */
-function createFeaturePlugins(config: EnhanceFeatureConfig): any[] {
-  const plugins: any[] = [];
+function createVueDevToolsPlugin(options: Record<string, unknown>): VitePlugin[] {
+  const plugin = tryImportPlugin('vite-plugin-vue-devtools');
+  if (!plugin || typeof plugin !== 'function') {
+    return [];
+  }
+  
+  try {
+    const result = (plugin as (opts: unknown) => VitePlugin | VitePlugin[])(options);
+    return Array.isArray(result) ? result : [result];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Create feature plugins for app preset
+ */
+function createAppFeaturePlugins(config: EnhanceFeatureConfig): VitePlugin[] {
+  const plugins: VitePlugin[] = [];
 
   // CDN plugin
-  if (config.cdn !== false) {
-    plugins.push(...createCDNPlugin(config.cdn));
+  if (config.cdn !== false && config.cdn !== undefined) {
+    plugins.push(...createCDNPluginInternal(config.cdn as boolean | CDNOptions));
   }
 
   // Cache plugin
-  if (config.cache !== false) {
-    plugins.push(...createCachePlugin(config.cache));
+  if (config.cache !== false && config.cache !== undefined) {
+    plugins.push(...createCachePluginInternal(config.cache as boolean | CacheOptions));
   }
 
   // Analyze plugin
   if (config.analyze) {
-    plugins.push(...createAnalyzePlugin(config.analyze));
+    plugins.push(...createAnalyzePluginInternal(config.analyze as boolean | AnalyzeOptions));
   }
 
   // PWA plugin
   if (config.pwa) {
-    plugins.push(...createPWAPlugin(config.pwa));
+    plugins.push(...createPWAPluginInternal(config.pwa as boolean | PWAOptions));
   }
-  
+
   // Compress plugin
   if (config.compress !== false) {
-    plugins.push(...createCompressPlugin(config.compress));
+    const compressOptions = config.compress === true ? {} : (config.compress || {});
+    const compressPluginInstance = createCompressPlugin(compressOptions);
+    const compressVitePlugins = compressPluginInstance.vitePlugin?.();
+    if (compressVitePlugins) {
+      if (Array.isArray(compressVitePlugins)) {
+        plugins.push(...compressVitePlugins);
+      } else {
+        plugins.push(compressVitePlugins);
+      }
+    }
   }
 
   return plugins;
 }
 
 /**
- * Detect framework from config or dependencies
+ * Create feature plugins for lib preset
  */
-function detectFramework(config: EnhanceFeatureConfig): 'vue' | 'react' | 'svelte' | 'solid' | 'lit' | 'preact' | 'none' {
-  // Check explicit framework config
-  if (config.vue) return 'vue';
-  if (config.react) return 'react';
+function createLibFeaturePlugins(config: EnhanceFeatureConfig): VitePlugin[] {
+  const plugins: VitePlugin[] = [];
 
-  // Try to detect from package.json dependencies
-  try {
-    const packageJsonPath = path.join(process.cwd(), 'package.json');
-    
-    if (fs.existsSync(packageJsonPath)) {
-      const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
-      const allDeps = {
-        ...packageJson.dependencies,
-        ...packageJson.devDependencies,
-        ...packageJson.peerDependencies,
-      };
-
-      // Vue detection
-      if (allDeps.vue || allDeps['@vue/core']) {
-        return 'vue';
+  // Compress plugin
+  if (config.compress !== false) {
+    const compressOptions = config.compress === true ? {} : (config.compress || {});
+    const compressPluginInstance = createCompressPlugin(compressOptions);
+    const compressVitePlugins = compressPluginInstance.vitePlugin?.();
+    if (compressVitePlugins) {
+      if (Array.isArray(compressVitePlugins)) {
+        plugins.push(...compressVitePlugins);
+      } else {
+        plugins.push(compressVitePlugins);
       }
-      
-      // React detection
-      if (allDeps.react || allDeps['react-dom']) return 'react';
-      
-      // Svelte detection
-      if (allDeps.svelte || allDeps['@sveltejs/vite-plugin-svelte']) return 'svelte';
-      
-      // Solid detection
-      if (allDeps['solid-js'] || allDeps['@solidjs/vite-plugin-solid']) return 'solid';
-      
-      // Lit detection
-      if (allDeps['lit-element'] || allDeps['lit-html'] || allDeps['lit'] || allDeps['@lit-labs/vite-plugin']) return 'lit';
-      
-      // Preact detection
-      if (allDeps.preact || allDeps['@preact/preset-vite']) return 'preact';
     }
-  } catch {
-    // Ignore errors in detection
   }
 
-  return 'none';
-}
-
-/**
- * Check if a path points to a library output directory
- */
-function isLibraryPath(filePath: string): boolean {
-  return filePath.includes('dist/') || 
-         filePath.includes('lib/') || 
-         filePath.includes('es/');
-}
-
-/**
- * Check if package.json has strong library indicators
- */
-function hasStrongLibraryIndicators(packageJson: any): boolean {
-  // Check for library entry points (main/module/types)
-  const hasLibraryEntryPoints = (
-    (packageJson.main && isLibraryPath(packageJson.main)) ||
-    (packageJson.module && isLibraryPath(packageJson.module)) ||
-    packageJson.types ||
-    packageJson.typings
-  );
-  
-  // Check for exports field (object structure indicates library)
-  const hasExportsField = (
-    packageJson.exports &&
-    typeof packageJson.exports === 'object'
-  );
-  
-  // Return true if either check passes
-  return hasLibraryEntryPoints || hasExportsField;
-}
-
-/**
- * Check if project has app-specific indicators
- */
-function hasAppIndicators(): boolean {
-  try {
-    // Check for HTML entry files
-    const commonHtmlFiles = [
-      'index.html',
-      'public/index.html',
-      'src/index.html',
-      'index.htm',
-      'public/index.htm',
-      'src/index.htm'
-    ];
-    
-    for (const htmlFile of commonHtmlFiles) {
-      const htmlPath = path.join(process.cwd(), htmlFile);
-      if (fs.existsSync(htmlPath)) {
-        return true;
-      }
-    }
-    
-    // Check for common app directories
-    const appDirs = ['public', 'assets', 'static'];
-    for (const dir of appDirs) {
-      const dirPath = path.join(process.cwd(), dir);
-      if (fs.existsSync(dirPath) && fs.statSync(dirPath).isDirectory()) {
-        return true;
-      }
-    }
-    
-    return false;
-  } catch {
-    return false;
+  // Analyze plugin
+  if (config.analyze) {
+    plugins.push(...createAnalyzePluginInternal(config.analyze as boolean | AnalyzeOptions));
   }
+
+  return plugins;
 }
 
 /**
- * Detect project preset (app or lib) from package.json and project structure
+ * Create CDN plugin with enhanced configuration
+ * Uses our internal CDN plugin implementation with auto-detection support
  */
-function detectPreset(): 'app' | 'lib' {
+function createCDNPluginInternal(options: boolean | CDNOptions): VitePlugin[] {
+  // Convert boolean/options to CDNOptions
+  const opts = options === true ? {} : (options === false ? null : options);
+  
   try {
-    const packageJsonPath = path.join(process.cwd(), 'package.json');
+    const cdnPlugin = createCDNPlugin(opts);
+    const vitePlugins = cdnPlugin.vitePlugin?.();
     
-    if (!fs.existsSync(packageJsonPath)) {
-      console.warn('[vite-enhance] package.json not found, defaulting to app preset');
-      return 'app';
+    if (vitePlugins) {
+      if (Array.isArray(vitePlugins)) {
+        return vitePlugins;
+      }
+      return [vitePlugins];
     }
-    
-    let packageJson;
-    try {
-      packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
-    } catch (error) {
-      console.warn('[vite-enhance] Failed to parse package.json, defaulting to app preset');
-      return 'app';
-    }
-    
-    // Check for strong library indicators first (early return)
-    if (hasStrongLibraryIndicators(packageJson)) {
-      return 'lib';
-    }
-    
-    // Check for app indicators
-    if (hasAppIndicators()) {
-      return 'app';
-    }
-    
-    // Default to 'app' if no clear indicators found
-    return 'app';
+    return [];
   } catch (error) {
-    console.warn('[vite-enhance] Error during preset detection, defaulting to app preset:', error);
-    return 'app';
-  }
-}
-
-/**
- * Create Vue plugin
- */
-function createVuePlugin(options: any = {}): any[] {
-  try {
-    // Try to dynamically import the Vue plugin
-    const vuePlugin = tryImportPlugin('@vitejs/plugin-vue');
-    if (vuePlugin) {
-      return [vuePlugin(options)];
-    }
-    
-    console.warn('[vite-enhance] Vue plugin not found. Please install @vitejs/plugin-vue');
-    return [];
-  } catch (error: any) {
-    console.warn('[vite-enhance] Vue plugin not found. Please install @vitejs/plugin-vue');
-    console.warn('Error:', error?.message || 'Unknown error');
-    return [];
-  }
-}
-
-/**
- * Create React plugin
- */
-function createReactPlugin(options: any = {}): any[] {
-  try {
-    // Try to dynamically import the React plugin
-    const reactPlugin = tryImportPlugin('@vitejs/plugin-react');
-    if (reactPlugin) {
-      return [reactPlugin(options)];
-    }
-    
-    console.warn('[vite-enhance] React plugin not found. Please install @vitejs/plugin-react');
-    return [];
-  } catch (error: any) {
-    console.warn('[vite-enhance] React plugin not found. Please install @vitejs/plugin-react');
-    console.warn('Error:', error?.message || 'Unknown error');
-    return [];
-  }
-}
-
-/**
- * Create CDN plugin - wrapper around vite-plugin-cdn-import with enhancements
- */
-function createCDNPlugin(options: any): any[] {
-  try {
-    // Import vite-plugin-cdn-import
-    const cdnImport = tryImportPlugin('vite-plugin-cdn-import');
-    if (!cdnImport) {
-      console.warn('[vite-enhance] vite-plugin-cdn-import not found. Please install it.');
-      return [];
-    }
-    
-    // Transform our options to vite-plugin-cdn-import format
-    const cdnOptions = transformCDNOptions(options || {});
-    
-    // Enhance with custom module configurations
-    if (cdnOptions.modules && cdnOptions.modules.length > 0) {
-      cdnOptions.modules = enhanceModuleConfigs(cdnOptions.modules, cdnImport);
-    }
-    
-    return [cdnImport(cdnOptions)];
-  } catch (error: any) {
-    console.warn('[vite-enhance] CDN plugin not available:', error?.message || 'Unknown error');
-    return [];
-  }
-}
-
-/**
- * Enhance module configurations with custom definitions
- */
-function enhanceModuleConfigs(modules: any[], cdnImport: any): any[] {
-  // Custom module configurations
-  const CUSTOM_MODULES: Record<string, any> = {
-    'vue': {
-      name: 'vue',
-      var: 'Vue',
-      path: 'dist/vue.runtime.global.prod.js', // 使用 runtime 版本（不含编译器）
-    },
-    'vue-router': {
-      name: 'vue-router',
-      var: 'VueRouter',
-      path: 'dist/vue-router.global.prod.js',
-    },
-    'element-plus': {
-      name: 'element-plus',
-      var: 'ElementPlus',
-      path: 'dist/index.full.min.js',
-      css: 'dist/index.css',
-    },
-    'element-ui': {
-      name: 'element-ui',
-      var: 'ELEMENT',
-      path: 'lib/index.js',
-      css: 'lib/theme-chalk/index.css',
-    },
-    'antd': {
-      name: 'antd',
-      var: 'antd',
-      path: 'dist/antd.min.js',
-      css: 'dist/reset.min.css',
-    },
-    'react': {
-      name: 'react',
-      var: 'React',
-      path: 'umd/react.production.min.js',
-    },
-    'react-dom': {
-      name: 'react-dom',
-      var: 'ReactDOM',
-      path: 'umd/react-dom.production.min.js',
-    },
-    'lodash': {
-      name: 'lodash',
-      var: '_',
-      path: 'lodash.min.js',
-    },
-    'axios': {
-      name: 'axios',
-      var: 'axios',
-      path: 'dist/axios.min.js',
-    },
-  };
-  
-  return modules.map(module => {
-    // If module is a string, try to convert it to module config
-    if (typeof module === 'string') {
-      // Use custom config if available
-      if (CUSTOM_MODULES[module]) {
-        return CUSTOM_MODULES[module];
-      }
-      
-      // If no custom config, try vite-plugin-cdn-import's autoComplete
-      const { autoComplete } = cdnImport;
-      if (autoComplete) {
-        try {
-          const config = autoComplete(module);
-          if (config) return config;
-        } catch {
-          // Ignore errors from autoComplete
-        }
-      }
-      
-      console.warn(`[vite-enhance:cdn] Module "${module}" is not supported. Please provide custom config.`);
-      return null;
-    }
-    
-    // If already a module config object, return as-is
-    return module;
-  }).filter(Boolean); // Remove null values
-}
-
-/**
- * Transform our CDN options to vite-plugin-cdn-import format
- */
-function transformCDNOptions(options: any): any {
-  const {
-    modules = [],
-    cdnProvider = 'jsdelivr',
-    customProdUrl,
-    prodUrl,
-    enableInDevMode = false,
-    autoDetect = false,
-    autoDetectDeps = 'dependencies',
-    autoDetectExclude = [],
-    autoDetectInclude = [],
-    generateScriptTag,
-    generateCssLinkTag,
-  } = options;
-  
-  // Auto-detect modules if enabled
-  let finalModules = [...modules];
-  if (autoDetect) {
-    const detectedModules = autoDetectModulesFromPackageJson(
-      process.cwd(),
-      autoDetectDeps,
-      autoDetectExclude,
-      autoDetectInclude
-    );
-    finalModules = [...new Set([...modules, ...detectedModules])];
-    
-    if (detectedModules.length > 0) {
-      console.log(`[vite-enhance:cdn] Auto-detected ${detectedModules.length} modules: ${detectedModules.join(', ')}`);
-    }
-  }
-  
-  // vite-plugin-cdn-import uses 'prodUrl' for the base URL template
-  // It should be the full CDN domain, the plugin handles the path
-  let finalProdUrl = prodUrl || customProdUrl;
-  if (!finalProdUrl) {
-    // vite-plugin-cdn-import default is jsdelivr, so we can omit if using jsdelivr
-    // For other providers, we need to specify
-    if (cdnProvider !== 'jsdelivr') {
-      switch (cdnProvider) {
-        case 'unpkg':
-          finalProdUrl = 'https://unpkg.com';
-          break;
-        case 'cdnjs':
-          finalProdUrl = 'https://cdnjs.cloudflare.com/ajax/libs';
-          break;
-      }
-    }
-  }
-  
-  const config: any = {
-    modules: finalModules,
-    enableInDevMode,
-  };
-  
-  // Only add prodUrl if specified
-  if (finalProdUrl) {
-    config.prodUrl = finalProdUrl;
-  }
-  
-  // Add custom tag generators if provided, or use defaults with crossorigin
-  if (generateScriptTag) {
-    config.generateScriptTag = generateScriptTag;
-  } else {
-    // Default: add crossorigin="anonymous" for better CORS handling
-    config.generateScriptTag = (_name: string, _url: string) => ({
-      crossorigin: 'anonymous',
-    });
-  }
-  
-  if (generateCssLinkTag) {
-    config.generateCssLinkTag = generateCssLinkTag;
-  } else {
-    // Default: add crossorigin="anonymous" for CSS as well
-    config.generateCssLinkTag = (_name: string, _url: string) => ({
-      crossorigin: 'anonymous',
-    });
-  }
-  
-  return config;
-}
-
-/**
- * Auto-detect modules from package.json
- */
-function autoDetectModulesFromPackageJson(
-  root: string,
-  depsType: 'dependencies' | 'all' | 'production',
-  exclude: string[] = [],
-  include: string[] = []
-): string[] {
-  try {
-    const packageJsonPath = path.join(root, 'package.json');
-    
-    if (!fs.existsSync(packageJsonPath)) {
-      return [];
-    }
-    
-    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
-    const detectedModules: string[] = [];
-    
-    // Get dependencies based on type
-    let allDeps: Record<string, string> = {};
-    
-    switch (depsType) {
-      case 'dependencies':
-        allDeps = packageJson.dependencies || {};
-        break;
-      case 'production':
-        allDeps = {
-          ...(packageJson.dependencies || {}),
-          ...(packageJson.peerDependencies || {}),
-        };
-        break;
-      case 'all':
-        allDeps = {
-          ...(packageJson.dependencies || {}),
-          ...(packageJson.devDependencies || {}),
-          ...(packageJson.peerDependencies || {}),
-        };
-        break;
-    }
-    
-    // Supported modules that can be auto-detected
-    const SUPPORTED_MODULES = [
-      'vue', 'vue-router', 'vue-demi',
-      'react', 'react-dom', 'react-router-dom',
-      'lodash', 'axios', 'moment', 'dayjs',
-      'element-plus', 'element-ui', 'antd',
-      'jquery', 'bootstrap', 'echarts', 'three'
-    ];
-    
-    // Check each dependency against supported modules
-    for (const [depName] of Object.entries(allDeps)) {
-      // Skip if excluded
-      if (exclude.includes(depName)) {
-        continue;
-      }
-      
-      // Include if in supported modules list
-      if (SUPPORTED_MODULES.includes(depName)) {
-        detectedModules.push(depName);
-      }
-    }
-    
-    // Add explicitly included modules
-    for (const moduleName of include) {
-      if (!detectedModules.includes(moduleName)) {
-        detectedModules.push(moduleName);
-      }
-    }
-    
-    return detectedModules;
-    
-  } catch (error) {
-    console.warn('[vite-enhance:cdn] Failed to auto-detect modules:', error);
+    logger.error('Failed to create CDN plugin:', error);
     return [];
   }
 }
@@ -757,24 +311,19 @@ function autoDetectModulesFromPackageJson(
 /**
  * Create Cache plugin
  */
-function createCachePlugin(options: any): any[] {
-  try {
-    // Try to import cache-related plugins
-    const cachePlugin = tryImportPlugin('vite-plugin-cache');
-    if (cachePlugin) {
-      return [cachePlugin(options)];
-    }
-    
-    // Try alternative cache plugins
-    const cachePlugin2 = tryImportPlugin('vite-plugin-build-cache');
-    if (cachePlugin2) {
-      return [cachePlugin2(options)];
-    }
-    
-    console.warn('[vite-enhance] Cache plugin not found. Please install vite-plugin-cache or vite-plugin-build-cache');
+function createCachePluginInternal(options: boolean | CacheOptions): VitePlugin[] {
+  const cachePlugin = tryImportPlugin('vite-plugin-cache');
+  if (!cachePlugin) {
+    logger.debug('vite-plugin-cache not found, skipping cache plugin');
     return [];
-  } catch (error: any) {
-    console.warn('[vite-enhance] Cache plugin not available:', error?.message || 'Unknown error');
+  }
+
+  try {
+    const opts = options === true ? {} : options;
+    const plugin = (cachePlugin as (opts: unknown) => VitePlugin)(opts);
+    return [plugin];
+  } catch (error) {
+    logger.error('Failed to create cache plugin:', error);
     return [];
   }
 }
@@ -782,24 +331,19 @@ function createCachePlugin(options: any): any[] {
 /**
  * Create Analyze plugin
  */
-function createAnalyzePlugin(options: any): any[] {
-  try {
-    // Try to import rollup-plugin-visualizer
-    const analyzePlugin = tryImportPlugin('rollup-plugin-visualizer');
-    if (analyzePlugin) {
-      return [analyzePlugin(options)];
-    }
-    
-    // Try alternative analyze plugins
-    const analyzePlugin2 = tryImportPlugin('vite-bundle-analyzer');
-    if (analyzePlugin2) {
-      return [analyzePlugin2(options)];
-    }
-    
-    console.warn('[vite-enhance] Analyze plugin not found. Please install rollup-plugin-visualizer or vite-bundle-analyzer');
+function createAnalyzePluginInternal(options: boolean | AnalyzeOptions): VitePlugin[] {
+  const visualizer = tryImportPlugin('rollup-plugin-visualizer');
+  if (!visualizer) {
+    logger.warn('rollup-plugin-visualizer not found. Please install it for bundle analysis.');
     return [];
-  } catch (error: any) {
-    console.warn('[vite-enhance] Analyze plugin not available:', error?.message || 'Unknown error');
+  }
+
+  try {
+    const opts = options === true ? { open: true } : options;
+    const plugin = (visualizer as (opts: unknown) => VitePlugin)(opts);
+    return [plugin];
+  } catch (error) {
+    logger.error('Failed to create analyze plugin:', error);
     return [];
   }
 }
@@ -807,129 +351,19 @@ function createAnalyzePlugin(options: any): any[] {
 /**
  * Create PWA plugin
  */
-function createPWAPlugin(options: any): any[] {
-  try {
-    // Try to import vite-plugin-pwa
-    const pwaPlugin = tryImportPlugin('vite-plugin-pwa');
-    if (pwaPlugin) {
-      return [pwaPlugin(options)];
-    }
-    
-    console.warn('[vite-enhance] PWA plugin not found. Please install vite-plugin-pwa');
-    return [];
-  } catch (error: any) {
-    console.warn('[vite-enhance] PWA plugin not available:', error?.message || 'Unknown error');
+function createPWAPluginInternal(options: boolean | PWAOptions): VitePlugin[] {
+  const pwa = tryImportPlugin('vite-plugin-pwa');
+  if (!pwa) {
+    logger.warn('vite-plugin-pwa not found. Please install it for PWA support.');
     return [];
   }
-}
 
-/**
- * Create Svelte plugin
- */
-function createSveltePlugin(options: any = {}): any[] {
   try {
-    // Try to dynamically import the Svelte plugin
-    const sveltePlugin = tryImportPlugin('@sveltejs/vite-plugin-svelte');
-    if (sveltePlugin) {
-      return [sveltePlugin(options)];
-    }
-    
-    console.warn('[vite-enhance] Svelte plugin not found. Please install @sveltejs/vite-plugin-svelte');
-    return [];
-  } catch (error: any) {
-    console.warn('[vite-enhance] Svelte plugin not found. Please install @sveltejs/vite-plugin-svelte');
-    console.warn('Error:', error?.message || 'Unknown error');
-    return [];
-  }
-}
-
-/**
- * Create Solid plugin
- */
-function createSolidPlugin(options: any = {}): any[] {
-  try {
-    // Try to dynamically import the Solid plugin
-    const solidPlugin = tryImportPlugin('@solidjs/vite-plugin-solid');
-    if (solidPlugin) {
-      return [solidPlugin(options)];
-    }
-    
-    console.warn('[vite-enhance] Solid plugin not found. Please install @solidjs/vite-plugin-solid');
-    return [];
-  } catch (error: any) {
-    console.warn('[vite-enhance] Solid plugin not found. Please install @solidjs/vite-plugin-solid');
-    console.warn('Error:', error?.message || 'Unknown error');
-    return [];
-  }
-}
-
-/**
- * Create Lit plugin
- */
-function createLitPlugin(options: any = {}): any[] {
-  try {
-    // Try to dynamically import the Lit plugin
-    const litPlugin = tryImportPlugin('@lit-labs/vite-plugin');
-    if (litPlugin) {
-      return [litPlugin(options)];
-    }
-    
-    // Try alternative Lit plugin
-    const litPlugin2 = tryImportPlugin('vite-plugin-lit');
-    if (litPlugin2) {
-      return [litPlugin2(options)];
-    }
-    
-    console.warn('[vite-enhance] Lit plugin not found. Please install @lit-labs/vite-plugin or vite-plugin-lit');
-    return [];
-  } catch (error: any) {
-    console.warn('[vite-enhance] Lit plugin not available:', error?.message || 'Unknown error');
-    return [];
-  }
-}
-
-/**
- * Create Preact plugin
- */
-function createPreactPlugin(options: any = {}): any[] {
-  try {
-    // Try to dynamically import the Preact plugin
-    const preactPlugin = tryImportPlugin('@preact/preset-vite');
-    if (preactPlugin) {
-      return [preactPlugin(options)];
-    }
-    
-    console.warn('[vite-enhance] Preact plugin not found. Please install @preact/preset-vite');
-    return [];
-  } catch (error: any) {
-    console.warn('[vite-enhance] Preact plugin not found. Please install @preact/preset-vite');
-    console.warn('Error:', error?.message || 'Unknown error');
-    return [];
-  }
-}
-
-/**
- * Try to dynamically import a plugin
- */
-function tryImportPlugin(packageName: string): any {
-  try {
-    // Create a require function for dynamic imports in ESM
-    const require = createRequire(import.meta.url);
-    const module = require(packageName);
-    
-    // Handle different export patterns
-    // ESM default export: { default: function }
-    // CommonJS: function
-    return module.default || module;
+    const opts = options === true ? {} : options;
+    const result = (pwa as (opts: unknown) => VitePlugin | VitePlugin[])(opts);
+    return Array.isArray(result) ? result : [result];
   } catch (error) {
-    // Plugin not installed or not available
-    return null;
+    logger.error('Failed to create PWA plugin:', error);
+    return [];
   }
-}
-
-/**
- * Create Compress plugin
- */
-function createCompressPlugin(options: any): any[] {
-  return [compressPlugin(options === true ? {} : options)];
 }

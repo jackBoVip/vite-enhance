@@ -1,7 +1,7 @@
 import type { ViteDevServer, Plugin as VitePlugin } from 'vite';
-import type { ResolvedEnhanceConfig } from './config';
-import type { BuildContext } from './hooks';
-import type { Logger } from '../logger';
+import type { ResolvedEnhanceConfig, EnhanceFeatureConfig as FeatureConfig } from './config.js';
+import type { BuildContext } from './hooks.js';
+import type { Logger } from '../logger.js';
 
 export interface EnhancePlugin {
   name: string;
@@ -30,3 +30,6 @@ export interface PluginContext {
 
 export type ProjectType = 'app' | 'lib' | 'monorepo';
 export type FrameworkType = 'vue' | 'react' | 'svelte' | 'solid' | 'lit' | 'preact' | 'vanilla' | 'unknown';
+
+// Re-export for convenience
+export type { FeatureConfig as EnhanceFeatureConfig };

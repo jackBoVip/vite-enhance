@@ -1,10 +1,8 @@
-import { defineConfig } from 'vite'
 import { defineEnhanceConfig } from 'vite-enhance'
 
-export default defineConfig(
-  defineEnhanceConfig({
-    enhance: {
-      preset: 'app'
-    }
-  })
-)
+// defineEnhanceConfig 已返回完整的 Vite 配置，无需 defineConfig 包装
+export default defineEnhanceConfig({
+  enhance: {
+    // preset: 'app'
+  }
+})

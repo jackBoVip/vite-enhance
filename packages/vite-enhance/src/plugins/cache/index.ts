@@ -2,7 +2,10 @@ import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync, mkdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import type { Plugin as VitePlugin } from 'vite';
-import type { EnhancePlugin, CacheOptions } from '../../shared';
+import type { EnhancePlugin, CacheOptions } from '../../shared/index.js';
+import { createLogger } from '../../shared/logger.js';
+
+const logger = createLogger('cache');
 
 export interface CreateCachePluginOptions extends CacheOptions {
   // Additional options specific to the enhance plugin
@@ -24,6 +27,17 @@ interface FileInfo {
   mtime: number;
 }
 
+// Module-level pattern cache with size limit
+const MAX_PATTERN_CACHE_SIZE = 100;
+const patternCache = new Map<string, RegExp>();
+
+/**
+ * Clear pattern cache (useful for testing or memory management)
+ */
+export function clearPatternCache(): void {
+  patternCache.clear();
+}
+
 /**
  * High-performance cache plugin with intelligent invalidation
  */
@@ -33,8 +47,11 @@ export function createCachePlugin(options: CreateCachePluginOptions | null = {})
     cacheDir = 'node_modules/.vite-enhance/cache',
     include = ['**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx', '**/*.vue', '**/*.css', '**/*.scss'],
     exclude = ['**/node_modules/**', '**/dist/**', '**/.git/**', '**/coverage/**'],
+    strategy = {},
   } = safeOptions;
 
+  const maxCacheSize = strategy.maxSize ?? 50000; // Max 50k files
+  
   let cacheManifest: CacheManifest = {
     version: '2.0.0',
     files: new Map(),
@@ -48,12 +65,13 @@ export function createCachePlugin(options: CreateCachePluginOptions | null = {})
   let manifestPath: string;
   let hasChanges = false;
   
-  // Performance optimizations
+  // Per-build hash cache (cleared after each build)
   const fileHashCache = new Map<string, string>();
+  const MAX_HASH_CACHE_SIZE = 10000;
 
   return {
     name: 'enhance:cache',
-    version: '0.2.0',
+    version: '0.4.0',
     apply: 'build',
     
     vitePlugin(): VitePlugin[] {
@@ -65,123 +83,124 @@ export function createCachePlugin(options: CreateCachePluginOptions | null = {})
           configResolved(config) {
             manifestPath = join(config.root, cacheDir, 'manifest.json');
             
-            // Ensure cache directory exists
             const cacheDirPath = join(config.root, cacheDir);
             if (!existsSync(cacheDirPath)) {
               mkdirSync(cacheDirPath, { recursive: true });
             }
             
-            // Load existing cache manifest with validation
             loadCacheManifest();
           },
           
           buildStart() {
-            console.log(`[vek:cache] Cache initialized with ${cacheManifest.files.size} cached files`);
+            // Clear per-build caches
+            fileHashCache.clear();
+            hasChanges = false;
+            logger.info(`Cache initialized (${cacheManifest.files.size} entries)`);
           },
           
           load(id) {
-            // Skip virtual modules and node_modules
             if (id.startsWith('\0') || id.includes('node_modules')) {
               return null;
             }
             
-            // Check if file should be cached
             if (shouldCache(id, include, exclude)) {
               const cacheResult = checkFileCache(id);
               
               if (cacheResult.hit) {
-                console.log(`[vek:cache] Cache hit: ${relative(process.cwd(), id)}`);
+                logger.debug(`Cache hit: ${relative(process.cwd(), id)}`);
               } else {
-                console.log(`[vek:cache] Cache miss: ${relative(process.cwd(), id)}`);
+                logger.debug(`Cache miss: ${relative(process.cwd(), id)}`);
                 hasChanges = true;
               }
             }
             
-            return null; // Let Vite handle the actual loading
+            return null;
           },
           
           buildEnd() {
-            // Save updated cache manifest with metadata
+            // Clear per-build hash cache
+            fileHashCache.clear();
+            
             if (hasChanges) {
               saveCacheManifest();
             }
           },
           
           closeBundle() {
-            // Clean up old cache entries
             cleanupOldEntries();
+            enforceSizeLimit();
           },
         },
       ];
     },
     
-    configResolved(_config) {
-      console.log('[vek:cache] Enhanced build cache plugin initialized');
-      console.log(`[vek:cache] Cache directory: ${cacheDir}`);
-      console.log(`[vek:cache] Include patterns: ${include.join(', ')}`);
-      console.log(`[vek:cache] Exclude patterns: ${exclude.join(', ')}`);
+    configResolved() {
+      logger.info(`Cache directory: ${cacheDir}`);
     },
   };
 
-  /**
-   * Load cache manifest with error handling and migration
-   */
   function loadCacheManifest(): void {
-    if (!existsSync(manifestPath)) {
-      return;
-    }
+    if (!existsSync(manifestPath)) return;
     
     try {
       const content = readFileSync(manifestPath, 'utf-8');
-      const parsed = JSON.parse(content);
+      const parsed = JSON.parse(content) as Record<string, unknown>;
       
-      // Handle legacy format migration
+      // Validate parsed data
+      if (!parsed || typeof parsed !== 'object') {
+        throw new Error('Invalid manifest format');
+      }
+      
       if (parsed.version === '1.0.0') {
         migrateLegacyManifest(parsed);
       } else {
-        // Convert plain object back to Map
+        const files = parsed.files;
         cacheManifest = {
-          ...parsed,
-          files: new Map(Object.entries(parsed.files || {})),
+          version: String(parsed.version ?? '2.0.0'),
+          files: new Map(
+            files && typeof files === 'object' 
+              ? Object.entries(files as Record<string, FileInfo>)
+              : []
+          ),
+          metadata: {
+            created: Number(parsed.metadata && (parsed.metadata as Record<string, unknown>).created) || Date.now(),
+            lastModified: Number(parsed.metadata && (parsed.metadata as Record<string, unknown>).lastModified) || Date.now(),
+            nodeVersion: String(parsed.metadata && (parsed.metadata as Record<string, unknown>).nodeVersion) || process.version,
+          },
         };
       }
       
-      console.log('[vek:cache] Loaded cache manifest');
+      logger.debug(`Loaded cache manifest (${cacheManifest.files.size} entries)`);
     } catch (error) {
-      console.warn('[vek:cache] Failed to load cache manifest, starting fresh:', error);
+      logger.warn('Failed to load cache manifest, starting fresh:', error instanceof Error ? error.message : 'Unknown error');
       cacheManifest.files.clear();
     }
   }
 
-  /**
-   * Save cache manifest with optimized serialization
-   */
   function saveCacheManifest(): void {
     try {
       cacheManifest.metadata.lastModified = Date.now();
       
-      // Convert Map to plain object for JSON serialization
       const serializable = {
-        ...cacheManifest,
+        version: cacheManifest.version,
+        metadata: cacheManifest.metadata,
         files: Object.fromEntries(cacheManifest.files),
       };
       
       writeFileSync(manifestPath, JSON.stringify(serializable, null, 2));
-      console.log(`[vek:cache] Cache manifest updated with ${cacheManifest.files.size} entries`);
+      logger.success(`Cache manifest saved (${cacheManifest.files.size} entries)`);
     } catch (error) {
-      console.warn('[vek:cache] Failed to save cache manifest:', error);
+      logger.error('Failed to save cache manifest:', error instanceof Error ? error.message : 'Unknown error');
     }
   }
 
-  /**
-   * Migrate legacy manifest format
-   */
-  function migrateLegacyManifest(legacy: any): void {
-    console.log('[vek:cache] Migrating legacy cache manifest');
+  function migrateLegacyManifest(legacy: Record<string, unknown>): void {
+    logger.info('Migrating legacy cache manifest');
     cacheManifest.files.clear();
     
-    if (legacy.files && typeof legacy.files === 'object') {
-      for (const [filePath, hash] of Object.entries(legacy.files)) {
+    const files = legacy.files as Record<string, string> | undefined;
+    if (files && typeof files === 'object') {
+      for (const [filePath, hash] of Object.entries(files)) {
         if (typeof hash === 'string') {
           try {
             const stats = statSync(filePath);
@@ -192,83 +211,72 @@ export function createCachePlugin(options: CreateCachePluginOptions | null = {})
             });
           } catch {
             // File no longer exists, skip
+            logger.debug(`Skipping missing file during migration: ${filePath}`);
           }
         }
       }
     }
+    
+    hasChanges = true;
   }
 
-  /**
-   * Check file cache with intelligent invalidation
-   */
   function checkFileCache(filePath: string): { hit: boolean; info?: FileInfo } {
     try {
       const stats = statSync(filePath);
       const cachedInfo = cacheManifest.files.get(filePath);
       
+      // New file - cache miss
       if (!cachedInfo) {
-        // New file, compute hash and cache
         const hash = computeFileHash(filePath);
-        const info: FileInfo = {
-          hash,
-          size: stats.size,
-          mtime: stats.mtimeMs,
-        };
+        const info: FileInfo = { hash, size: stats.size, mtime: stats.mtimeMs };
         cacheManifest.files.set(filePath, info);
         return { hit: false, info };
       }
       
-      // Check if file has changed using multiple heuristics
+      // File metadata changed - need to verify hash
       if (stats.mtimeMs !== cachedInfo.mtime || stats.size !== cachedInfo.size) {
-        // File modified, recompute hash
-        const hash = computeFileHash(filePath);
-        const info: FileInfo = {
-          hash,
-          size: stats.size,
-          mtime: stats.mtimeMs,
-        };
+        const newHash = computeFileHash(filePath);
+        const info: FileInfo = { hash: newHash, size: stats.size, mtime: stats.mtimeMs };
         cacheManifest.files.set(filePath, info);
-        return { hit: hash === cachedInfo.hash, info };
+        
+        // Content unchanged (same hash) - cache hit
+        // Content changed (different hash) - cache miss
+        return { hit: newHash === cachedInfo.hash, info };
       }
       
-      // File unchanged based on mtime and size
+      // File metadata unchanged - cache hit
       return { hit: true, info: cachedInfo };
     } catch (error) {
-      // File doesn't exist or can't be accessed
+      // File read error - remove from cache
       cacheManifest.files.delete(filePath);
+      logger.debug(`File access error, removed from cache: ${filePath}`);
       return { hit: false };
     }
   }
 
-  /**
-   * Compute file hash with caching
-   */
   function computeFileHash(filePath: string): string {
-    // Check in-memory cache first
+    // Check per-build cache first
     const cached = fileHashCache.get(filePath);
-    if (cached) {
-      return cached;
-    }
+    if (cached) return cached;
     
     try {
       const content = readFileSync(filePath);
       const hash = createHash('sha256').update(content).digest('hex').slice(0, 16);
       
-      // Cache the hash (with size limit to prevent memory leaks)
-      if (fileHashCache.size < 10000) {
-        fileHashCache.set(filePath, hash);
+      // LRU-like behavior: clear oldest entries when limit reached
+      if (fileHashCache.size >= MAX_HASH_CACHE_SIZE) {
+        const firstKey = fileHashCache.keys().next().value;
+        if (firstKey) fileHashCache.delete(firstKey);
       }
       
+      fileHashCache.set(filePath, hash);
       return hash;
     } catch (error) {
-      console.warn(`[vek:cache] Failed to hash file ${filePath}:`, error);
+      logger.debug(`Failed to compute hash for: ${filePath}`);
       return '';
     }
   }
 
-  /**
-   * Clean up old cache entries for files that no longer exist
-   */
   function cleanupOldEntries(): void {
     const filesToRemove: string[] = [];
     
@@ -282,54 +290,61 @@ export function createCachePlugin(options: CreateCachePluginOptions | null = {})
       for (const filePath of filesToRemove) {
         cacheManifest.files.delete(filePath);
       }
-      console.log(`[vek:cache] Cleaned up ${filesToRemove.length} stale cache entries`);
+      logger.info(`Cleaned up ${filesToRemove.length} stale cache entries`);
       hasChanges = true;
     }
   }
+
+  function enforceSizeLimit(): void {
+    if (cacheManifest.files.size <= maxCacheSize) return;
+    
+    // Remove oldest entries (FIFO)
+    const entriesToRemove = cacheManifest.files.size - maxCacheSize;
+    const keys = Array.from(cacheManifest.files.keys()).slice(0, entriesToRemove);
+    
+    for (const key of keys) {
+      cacheManifest.files.delete(key);
+    }
+    
+    logger.info(`Enforced cache size limit, removed ${entriesToRemove} oldest entries`);
+    hasChanges = true;
+  }
 }
 
-/**
- * Optimized pattern matching with caching
- */
 function shouldCache(filePath: string, include: readonly string[], exclude: readonly string[]): boolean {
-  // Check exclude patterns first (more likely to match)
+  // Check exclusions first (more specific)
   for (const pattern of exclude) {
-    if (matchesPattern(pattern, filePath)) {
-      return false;
-    }
+    if (matchesPattern(pattern, filePath)) return false;
   }
   
-  // Check include patterns
+  // Check inclusions
   for (const pattern of include) {
-    if (matchesPattern(pattern, filePath)) {
-      return true;
-    }
+    if (matchesPattern(pattern, filePath)) return true;
   }
   
   return false;
 }
 
-// Module-level pattern cache for better performance
-const patternCache = new Map<string, RegExp>();
-
-/**
- * Pattern matching with regex caching for performance
- */
 function matchesPattern(pattern: string, filePath: string): boolean {
   let regex = patternCache.get(pattern);
+  
   if (!regex) {
-    // Convert glob pattern to regex with proper escaping
+    // Escape special regex characters except * and **
     const regexPattern = pattern
-      .replace(/[.+^${}()|[\]\\]/g, '\\$&') // Escape special regex chars
-      .replace(/\*\*/g, '.*') // ** matches any path
-      .replace(/\*/g, '[^/]*'); // * matches any filename chars
+      .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+      .replace(/\*\*/g, '<<<GLOBSTAR>>>')
+      .replace(/\*/g, '[^/\\\\]*')
+      .replace(/<<<GLOBSTAR>>>/g, '.*');
     
     regex = new RegExp(`^${regexPattern}$`);
     
-    // Cache with size limit
-    if (patternCache.size < 100) {
-      patternCache.set(pattern, regex);
+    // LRU-like behavior for pattern cache
+    if (patternCache.size >= MAX_PATTERN_CACHE_SIZE) {
+      const firstKey = patternCache.keys().next().value;
+      if (firstKey) patternCache.delete(firstKey);
     }
+    
+    patternCache.set(pattern, regex);
   }
   
   return regex.test(filePath);

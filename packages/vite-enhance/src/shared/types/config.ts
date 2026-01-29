@@ -29,10 +29,8 @@ export interface EnhanceConfig {
   // Vite 原生配置
   vite?: ViteUserConfig;
   
-  // 额外的 Vite 插件
-  plugins?: any[];
-  
-
+  // 额外的 Vite 插件 (Vite Plugin type is complex, use unknown)
+  plugins?: unknown[];
 }
 
 export interface ResolvedEnhanceConfig extends EnhanceConfig {
@@ -49,6 +47,9 @@ export interface PresetConfig {
   options?: Record<string, unknown>;
 }
 
+// Babel plugin/preset type (complex, use unknown for flexibility)
+export type BabelPlugin = string | [string, Record<string, unknown>] | unknown;
+
 // 框架插件选项
 export interface VuePluginOptions {
   script?: {
@@ -57,7 +58,7 @@ export interface VuePluginOptions {
     hoistStatic?: boolean;
   };
   template?: {
-    compilerOptions?: Record<string, any>;
+    compilerOptions?: Record<string, unknown>;
   };
   style?: {
     filename?: string;
@@ -75,26 +76,26 @@ export interface ReactPluginOptions {
   jsxRuntime?: 'automatic' | 'classic';
   jsxImportSource?: string;
   babel?: {
-    plugins?: any[];
-    presets?: any[];
+    plugins?: BabelPlugin[];
+    presets?: BabelPlugin[];
   };
   include?: RegExp;
   exclude?: RegExp;
 }
 
 export interface SveltePluginOptions {
-  compilerOptions?: Record<string, any>;
-  preprocess?: any;
+  compilerOptions?: Record<string, unknown>;
+  preprocess?: unknown;
   hot?: boolean;
   ignorePluginPreprocessors?: boolean;
-  dynamicCompileOptions?: (filename: string) => Record<string, any>;
-  experimental?: Record<string, any>;
+  dynamicCompileOptions?: (filename: string) => Record<string, unknown>;
+  experimental?: Record<string, unknown>;
 }
 
 export interface SolidPluginOptions {
   babel?: {
-    plugins?: any[];
-    presets?: any[];
+    plugins?: BabelPlugin[];
+    presets?: BabelPlugin[];
   };
   extensions?: string[];
   template?: {
@@ -104,13 +105,13 @@ export interface SolidPluginOptions {
   hot?: boolean;
   hydratable?: boolean;
   generate?: 'dom' | 'ssr';
-  parserOptions?: Record<string, any>;
-  transformOptions?: Record<string, any>;
+  parserOptions?: Record<string, unknown>;
+  transformOptions?: Record<string, unknown>;
 }
 
 export interface LitPluginOptions {
-  compilerOptions?: Record<string, any>;
-  preprocess?: any;
+  compilerOptions?: Record<string, unknown>;
+  preprocess?: unknown;
   absoluteImports?: boolean;
   compileDebug?: boolean;
   minify?: boolean;
@@ -120,8 +121,8 @@ export interface LitPluginOptions {
 export interface PreactPluginOptions {
   devtoolsInProd?: boolean;
   babel?: {
-    plugins?: any[];
-    presets?: any[];
+    plugins?: BabelPlugin[];
+    presets?: BabelPlugin[];
   };
   include?: RegExp;
   exclude?: RegExp;
@@ -145,8 +146,8 @@ export interface CDNOptions {
   customProdUrl?: string;
   
   // 自定义标签生成
-  generateScriptTag?: (name: string, scriptUrl: string) => Record<string, any>;
-  generateCssLinkTag?: (name: string, cssUrl: string) => Record<string, any>;
+  generateScriptTag?: (name: string, scriptUrl: string) => Record<string, string | boolean>;
+  generateCssLinkTag?: (name: string, cssUrl: string) => Record<string, string | boolean>;
 }
 
 export interface CacheOptions {
@@ -172,11 +173,18 @@ export interface AnalyzeOptions {
   exclude?: (string | RegExp)[];
 }
 
+// Workbox runtime caching config
+export interface RuntimeCachingConfig {
+  urlPattern: string | RegExp;
+  handler: 'CacheFirst' | 'CacheOnly' | 'NetworkFirst' | 'NetworkOnly' | 'StaleWhileRevalidate';
+  options?: Record<string, unknown>;
+}
+
 export interface PWAOptions {
   registerType?: 'prompt' | 'autoUpdate';
   workbox?: {
     globPatterns?: string[];
-    runtimeCaching?: any[];
+    runtimeCaching?: RuntimeCachingConfig[];
     skipWaiting?: boolean;
     clientsClaim?: boolean;
   };

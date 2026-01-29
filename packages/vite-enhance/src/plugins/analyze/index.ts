@@ -1,6 +1,9 @@
-import { visualizer } from 'rollup-plugin-visualizer';
 import type { Plugin as VitePlugin } from 'vite';
-import type { EnhancePlugin, AnalyzeOptions } from '../../shared';
+import type { EnhancePlugin, AnalyzeOptions } from '../../shared/index.js';
+import { createLogger } from '../../shared/logger.js';
+import { tryImportPlugin } from '../../config/plugin-factory.js';
+
+const logger = createLogger('analyze');
 
 export interface CreateAnalyzePluginOptions extends AnalyzeOptions {
   // Additional options specific to the enhance plugin
@@ -15,25 +18,35 @@ export function createAnalyzePlugin(options: CreateAnalyzePluginOptions | null =
   const {
     open = true,
     filename = 'dist/stats.html',
+    template = 'treemap',
+    gzipSize = true,
+    brotliSize = true,
   } = safeOptions;
 
   let buildStartTime: number;
-  let pluginTimings: Record<string, number> = {};
+  const pluginTimings: Record<string, number> = {};
 
   return {
     name: 'enhance:analyze',
-    version: '0.1.0',
+    version: '0.2.0',
     apply: 'build',
     
     vitePlugin(): VitePlugin[] {
+      const visualizer = tryImportPlugin('rollup-plugin-visualizer');
+      
+      if (!visualizer || typeof visualizer !== 'function') {
+        logger.warn('rollup-plugin-visualizer not found. Please install it for bundle analysis.');
+        return [];
+      }
+
       return [
         // Bundle visualizer plugin
         visualizer({
           filename,
           open,
-          gzipSize: true,
-          brotliSize: true,
-          template: 'treemap', // 'treemap' | 'sunburst' | 'network'
+          gzipSize,
+          brotliSize,
+          template,
         }) as VitePlugin,
         
         // Plugin timing analysis
@@ -43,55 +56,44 @@ export function createAnalyzePlugin(options: CreateAnalyzePluginOptions | null =
           
           configResolved() {
             buildStartTime = Date.now();
-            console.log('[vek:analyze] Build timing analysis started');
+            logger.info('Build timing analysis started');
           },
           
           buildStart() {
-            const startTime = Date.now();
-            pluginTimings['buildStart'] = startTime - buildStartTime;
+            pluginTimings['buildStart'] = Date.now() - buildStartTime;
           },
           
           generateBundle() {
-            const currentTime = Date.now();
-            pluginTimings['generateBundle'] = currentTime - buildStartTime;
+            pluginTimings['generateBundle'] = Date.now() - buildStartTime;
           },
           
           writeBundle() {
             const currentTime = Date.now();
             pluginTimings['writeBundle'] = currentTime - buildStartTime;
             
-            // Output timing analysis
-            console.log('\n[vek:analyze] Plugin Timing Analysis:');
-            console.log('=====================================');
-            Object.entries(pluginTimings).forEach(([phase, time]) => {
-              console.log(`${phase.padEnd(20)}: ${time}ms`);
-            });
-            console.log(`Total build time: ${currentTime - buildStartTime}ms`);
-            console.log('=====================================\n');
+            logger.info('Build Timing Analysis:');
+            for (const [phase, time] of Object.entries(pluginTimings)) {
+              console.log(`  ${phase.padEnd(20)}: ${time}ms`);
+            }
+            logger.success(`Total build time: ${currentTime - buildStartTime}ms`);
           },
         },
       ];
     },
     
-    buildStart(_context) {
-      console.log('[vek:analyze] Bundle analysis started');
-      console.log(`[vek:analyze] Output file: ${filename}`);
-      if (open) {
-        console.log('[vek:analyze] Will open analysis report in browser');
-      }
+    buildStart() {
+      logger.info(`Bundle analysis enabled (output: ${filename})`);
     },
     
     buildEnd(context) {
-      const duration = context.endTime! - context.startTime;
-      console.log(`[vek:analyze] Bundle analysis completed in ${duration}ms`);
-      
-      // Generate JSON report for programmatic access
-      const jsonFilename = filename.replace('.html', '.json');
-      console.log(`[vek:analyze] JSON report available at: ${jsonFilename}`);
+      if (context.endTime && context.startTime) {
+        const duration = context.endTime - context.startTime;
+        logger.success(`Bundle analysis completed in ${duration}ms`);
+      }
     },
     
-    configResolved(_config) {
-      console.log('[vek:analyze] Bundle analysis plugin initialized');
+    configResolved() {
+      logger.info('Bundle analysis plugin initialized');
     },
   };
 }

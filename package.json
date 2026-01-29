@@ -2,7 +2,7 @@
   "name": "vite-enhance-monorepo",
   "version": "1.0.0",
   "description": "A modular Vite enhancement toolkit for enterprise-grade frontend engineering",
-  "private": false,
+  "private": true,
   "type": "module",
   "scripts": {
     "dev": "pnpm -r --parallel dev",

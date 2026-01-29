@@ -1,47 +1,139 @@
-# vite-enhance
+# Changelog
 
-## 0.3.3
+## [0.4.0] - 2026-01-29
 
-### Patch Changes
+### 🎯 Major Refactoring
 
-- Relax Vite peer dependency to support Vite 5.x, 6.x, and 7.x
-  - Changed peer dependency from `^7.3.0` to `^5.0.0 || ^6.0.0 || ^7.0.0`
-  - Improves compatibility with projects using older Vite versions
-  - Fixes peer dependency warnings for Vite 5.x and 6.x users
+This release includes a comprehensive refactoring for better maintainability, extensibility, and performance.
 
-## 0.3.2
+#### Architecture Improvements
 
-### Patch Changes
+- **Modular Structure**: Split `vite-integration.ts` into multiple focused modules:
+  - `detectors.ts` - Framework and preset detection
+  - `plugin-factory.ts` - Plugin creation factory
+  - `vite-integration.ts` - Core Vite config generation (now much smaller)
 
-- Fix library preset auto-detection for projects with standard package.json fields
-  - Improved `detectPreset()` function to correctly identify library projects
-  - Added early return when strong library indicators (main/module/exports/types) are found
-  - Removed unnecessary checks for lib-specific scripts/dependencies
-  - Fixed ESM compatibility issues with require() calls
-  - Enhanced error handling with proper logging
-  - Library projects with main/module/types/exports fields now auto-detect correctly without explicit preset configuration
+- **New Shared Modules**:
+  - `package-utils.ts` - Cached package.json utilities
+  - `cdn-modules.ts` - Centralized CDN module configurations
 
-## 0.3.1
+#### Dependency Optimization
 
-### Patch Changes
+- **Optional Peer Dependencies**: Framework plugins moved from `dependencies` to `peerDependenciesMeta`:
+  - `@vitejs/plugin-vue`
+  - `@vitejs/plugin-react`
+  - `@sveltejs/vite-plugin-svelte`
+  - `vite-plugin-solid`
+  - `@preact/preset-vite`
+  - `vite-plugin-pwa`
+  - `rollup-plugin-visualizer`
+  - `vite-plugin-vue-devtools`
+  
+  **Impact**: Significantly reduced installation size. Only install the plugins you need!
 
-- 修复库构建时的 Rollup 混合导出警告
-  - 自动为库构建添加 `rollupOptions.output.exports: "named"` 配置
-  - 消除 "Entry module is using named and default exports together" 警告
-  - 智能合并用户自定义的 rollupOptions 配置
-  - 更新 TROUBLESHOOTING.md 文档
+- **Added**: `picomatch` for better glob pattern matching
 
-## 0.3.0
+#### Performance Improvements
 
-### Minor Changes
+- **Package.json Caching**: Added TTL-based cache to avoid repeated file reads
+- **Plugin Import Caching**: Plugin dynamic imports are now cached
+- **Pattern Matching Cache**: Glob pattern regex compilation is cached
 
-- 6da066e: 优化库构建功能和项目类型检测
-  - 修复项目类型检测逻辑，优先检测 main/module 字段指向 dist/ 的情况
-  - 库构建直接输出到 dist/ 目录，不创建包名子目录
-  - 为库构建提供默认配置（entry、formats、fileName）
-  - 添加库构建压缩控制选项（disableForLib、appOnly）
-  - 优化构建输出目录结构
+#### Developer Experience
 
-### Patch Changes
+- **Unified Logger**: New configurable logging system with levels (debug, info, warn, error)
+  - `createLogger(name)` - Create namespaced logger
+  - `setLogLevel(level)` - Global log level control
+  - Success messages with ✓ indicator
 
-- bd065a4: fix: resolve catalog: protocol issue for external package installation
+- **Better Type Safety**: Reduced `any` usage throughout the codebase
+
+- **ESLint Configuration**: Added `eslint.config.js` for code quality
+
+#### New Exports
+
+```typescript
+// Logger utilities
+export { createLogger, setLogLevel, getLogLevel, type Logger, type LogLevel };
+
+// Package utilities
+export { getPackageJson, getPackageName, hasDependency, clearPackageCache };
+
+// CDN utilities
+export { CDN_MODULE_CONFIGS, getCDNUrlTemplate, getSupportedModules };
+
+// Plugin factory
+export { createFrameworkPlugin, createFeaturePlugin, isPluginAvailable };
+
+// Detectors
+export { detectFramework, detectPreset, isMonorepo };
+```
+
+#### CDN Module Updates
+
+- Added support for more modules: `pinia`, `vue-demi`, `naive-ui`, `@arco-design/web-vue`, `date-fns`, `d3`
+- Better module version detection
+- Centralized configuration reduces duplication
+
+### Breaking Changes
+
+- Minimum Node.js version is now 18.0.0
+- Framework plugins are no longer auto-installed, add them to your project's dependencies
+
+### Migration Guide
+
+If you were relying on auto-installed framework plugins, add them to your project:
+
+```bash
+# For Vue projects
+pnpm add -D @vitejs/plugin-vue vite-plugin-vue-devtools
+
+# For React projects
+pnpm add -D @vitejs/plugin-react
+
+# For bundle analysis
+pnpm add -D rollup-plugin-visualizer
+
+# For PWA support
+pnpm add -D vite-plugin-pwa
+```
+
+---
+
+## [0.3.3] - 2026-01-15
+
+### Fixed
+- Library build now auto-configures `rollupOptions.output.exports: "named"` to avoid mixed export warnings
+
+---
+
+## [0.3.0] - 2026-01-08
+
+### Added
+- Library build preset with smart defaults
+- Auto-detection of project type (app/lib)
+- Compress plugin for build artifacts
+
+### Changed
+- Library builds output to `dist/` directly
+- App builds output to `dist/{packageName}/`
+
+---
+
+## [0.2.0] - 2025-12-20
+
+### Added
+- Vue DevTools integration
+- CDN auto-detection feature
+- Cache plugin with intelligent invalidation
+
+---
+
+## [0.1.0] - 2025-12-01
+
+### Added
+- Initial release
+- `defineEnhanceConfig` for type-safe configuration
+- Framework detection (Vue, React, Svelte, Solid, Lit, Preact)
+- Preset system (app, lib)
+- Plugin system with lifecycle hooks

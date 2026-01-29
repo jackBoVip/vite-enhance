@@ -1,6 +1,9 @@
-import { VitePWA } from 'vite-plugin-pwa';
 import type { Plugin as VitePlugin } from 'vite';
-import type { EnhancePlugin, PWAOptions } from '../../shared';
+import type { EnhancePlugin, PWAOptions } from '../../shared/index.js';
+import { createLogger } from '../../shared/logger.js';
+import { tryImportPlugin } from '../../config/plugin-factory.js';
+
+const logger = createLogger('pwa');
 
 export interface CreatePWAPluginOptions extends PWAOptions {
   // Additional options specific to the enhance plugin
@@ -13,20 +16,29 @@ export interface CreatePWAPluginOptions extends PWAOptions {
 export function createPWAPlugin(options: CreatePWAPluginOptions | null = {}): EnhancePlugin {
   const safeOptions = options || {};
   const {
+    registerType = 'autoUpdate',
     manifest = {},
     workbox = {},
+    devOptions,
   } = safeOptions;
 
   return {
     name: 'enhance:pwa',
-    version: '0.1.0',
+    version: '0.2.0',
     apply: 'build',
     
     vitePlugin(): VitePlugin[] {
+      const VitePWA = tryImportPlugin('vite-plugin-pwa');
+      
+      if (!VitePWA || typeof VitePWA !== 'function') {
+        logger.warn('vite-plugin-pwa not found. Please install it for PWA support.');
+        return [];
+      }
+
       const pwaPlugins = VitePWA({
-        registerType: 'autoUpdate',
+        registerType,
         workbox: {
-          globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
           ...workbox,
         },
         manifest: {
@@ -35,15 +47,18 @@ export function createPWAPlugin(options: CreatePWAPluginOptions | null = {}): En
           description: 'A Vite Enhanced Application',
           theme_color: '#ffffff',
           background_color: '#ffffff',
+          display: 'standalone',
           ...manifest,
-        } as any,
+        },
+        devOptions,
       });
+      
       return Array.isArray(pwaPlugins) ? pwaPlugins : [pwaPlugins];
     },
     
-    configResolved(_config) {
-      console.log('[vek:pwa] PWA plugin initialized');
-      console.log('[vek:pwa] Service worker will be generated for production builds');
+    configResolved() {
+      logger.info('PWA plugin initialized');
+      logger.info('Service worker will be generated for production builds');
     },
   };
 }
