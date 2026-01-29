@@ -1,5 +1,47 @@
 # Changelog
 
+## 0.5.0
+
+### Minor Changes
+
+- ## Major Refactoring and Optimization v0.4.0
+
+  ### Architecture Improvements
+  - Modular plugin factory system with dynamic imports and caching
+  - Centralized CDN module configurations in `cdn-modules.ts`
+  - Package.json caching with 5-second TTL
+  - Unified logging system with configurable levels
+
+  ### New Features
+  - Auto-detect CDN modules from package.json dependencies
+  - CDN externalization with proper rollup config (reduces bundle size significantly)
+  - Comprehensive build analysis support
+  - PWA configuration support
+  - Build artifact compression (tar/tar.gz/zip)
+  - Framework auto-detection (Vue, React, Svelte, Solid, Lit, Preact)
+
+  ### Code Quality
+  - TypeScript strict mode compliance
+  - Null safety improvements throughout codebase
+  - Boundary condition handling
+  - Event listener cleanup in async operations
+  - Security: package name validation for dynamic imports
+
+  ### Examples
+  - Added react-demo for React framework testing
+  - Added cdn-demo for CDN auto-detection testing
+  - Added pwa-demo for PWA features
+  - Added analyze-demo for build analysis
+  - Added cache-demo for build caching
+  - Added compress-demo for compression features
+  - Added full-features-demo combining all features
+  - Updated all examples to Vite 7 compatibility
+
+  ### Breaking Changes
+  - Moved framework plugins to optional peer dependencies
+  - Renamed `compressPlugin` to `createCompressPlugin`
+  - Configuration structure now uses nested `enhance` key
+
 ## [0.4.0] - 2026-01-29
 
 ### 🎯 Major Refactoring
@@ -28,7 +70,7 @@ This release includes a comprehensive refactoring for better maintainability, ex
   - `vite-plugin-pwa`
   - `rollup-plugin-visualizer`
   - `vite-plugin-vue-devtools`
-  
+
   **Impact**: Significantly reduced installation size. Only install the plugins you need!
 
 - **Added**: `picomatch` for better glob pattern matching
@@ -103,6 +145,7 @@ pnpm add -D vite-plugin-pwa
 ## [0.3.3] - 2026-01-15
 
 ### Fixed
+
 - Library build now auto-configures `rollupOptions.output.exports: "named"` to avoid mixed export warnings
 
 ---
@@ -110,11 +153,13 @@ pnpm add -D vite-plugin-pwa
 ## [0.3.0] - 2026-01-08
 
 ### Added
+
 - Library build preset with smart defaults
 - Auto-detection of project type (app/lib)
 - Compress plugin for build artifacts
 
 ### Changed
+
 - Library builds output to `dist/` directly
 - App builds output to `dist/{packageName}/`
 
@@ -123,6 +168,7 @@ pnpm add -D vite-plugin-pwa
 ## [0.2.0] - 2025-12-20
 
 ### Added
+
 - Vue DevTools integration
 - CDN auto-detection feature
 - Cache plugin with intelligent invalidation
@@ -132,6 +178,7 @@ pnpm add -D vite-plugin-pwa
 ## [0.1.0] - 2025-12-01
 
 ### Added
+
 - Initial release
 - `defineEnhanceConfig` for type-safe configuration
 - Framework detection (Vue, React, Svelte, Solid, Lit, Preact)

@@ -1,6 +1,6 @@
 {
   "name": "vite-enhance",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "A modular Vite enhancement toolkit for enterprise-grade frontend engineering",
   "private": false,
   "type": "module",
@@ -55,14 +55,30 @@
     "vite-plugin-vue-devtools": "^7.0.0 || ^8.0.0"
   },
   "peerDependenciesMeta": {
-    "@vitejs/plugin-vue": { "optional": true },
-    "@vitejs/plugin-react": { "optional": true },
-    "@sveltejs/vite-plugin-svelte": { "optional": true },
-    "vite-plugin-solid": { "optional": true },
-    "@preact/preset-vite": { "optional": true },
-    "vite-plugin-pwa": { "optional": true },
-    "rollup-plugin-visualizer": { "optional": true },
-    "vite-plugin-vue-devtools": { "optional": true }
+    "@vitejs/plugin-vue": {
+      "optional": true
+    },
+    "@vitejs/plugin-react": {
+      "optional": true
+    },
+    "@sveltejs/vite-plugin-svelte": {
+      "optional": true
+    },
+    "vite-plugin-solid": {
+      "optional": true
+    },
+    "@preact/preset-vite": {
+      "optional": true
+    },
+    "vite-plugin-pwa": {
+      "optional": true
+    },
+    "rollup-plugin-visualizer": {
+      "optional": true
+    },
+    "vite-plugin-vue-devtools": {
+      "optional": true
+    }
   },
   "keywords": [
     "vite",
