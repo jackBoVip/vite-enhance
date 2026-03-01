@@ -120,7 +120,7 @@ export function getProductionDependencies(root?: string): Record<string, string>
  * Sanitize package name for use in file names
  */
 export function sanitizePackageName(name: string): string {
-  return name.replace(/[@\/]/g, '-').replace(/[^a-zA-Z0-9\-_.]/g, '');
+  return name.replace(/[@/]/g, '-').replace(/[^a-zA-Z0-9\-_.]/g, '');
 }
 
 /**

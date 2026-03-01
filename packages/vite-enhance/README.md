@@ -85,25 +85,22 @@ pnpm add vite-enhance
 
 ```ts
 // vite.config.ts
-import { defineConfig } from 'vite'
 import { defineEnhanceConfig } from 'vite-enhance'
 
-export default defineConfig(
-  defineEnhanceConfig({
-    // preset 会自动检测（app/lib），也可显式设置
-    // 框架会根据 package.json 中的依赖自动检测，无需配置
-    plugins: {
-      // 功能插件可按需启用
-      cdn: {
-        autoDetect: true, // 自动检测依赖
-        provider: 'jsdelivr'
-      },               // CDN 外部化
-      cache: true,      // 构建缓存
-      analyze: true,    // 包分析
-      pwa: true         // PWA 支持
-    }
-  })
-)
+export default defineEnhanceConfig({
+  // preset 会自动检测（app/lib），也可显式设置
+  // 框架会根据 package.json 中的依赖自动检测，无需配置
+  enhance: {
+    // 功能插件按需启用
+    cdn: {
+      autoDetect: true,   // 自动检测依赖
+      cdnProvider: 'jsdelivr',
+    },
+    cache: true,          // 构建缓存
+    analyze: { enabled: true }, // 包分析
+    pwa: false,           // PWA 支持
+  },
+})
 ```
 
 ### 3️⃣ 启动开发
@@ -320,7 +317,7 @@ cdn({
   autoDetectDeps: 'dependencies', // 仅检测 dependencies
   autoDetectExclude: ['@types/*'], // 排除某些依赖
   modules: ['react', 'react-dom'], // 手动指定模块
-  provider: 'jsdelivr', // 支持 jsdelivr, unpkg, cdnjs
+  cdnProvider: 'jsdelivr', // 支持 jsdelivr, unpkg, cdnjs
   enableInDevMode: false // 生产环境才启用
 })
 ```

@@ -198,7 +198,7 @@ export function renderCDNUrl(
   template: string,
   data: { name: string; version: string; path: string }
 ): string {
-  let url = template
+  const url = template
     .replace(/\{name\}/g, data.name)
     .replace(/\{version\}/g, data.version || 'latest')
     .replace(/\{path\}/g, data.path);

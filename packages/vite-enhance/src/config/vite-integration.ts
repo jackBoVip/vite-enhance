@@ -1,19 +1,25 @@
 import type { UserConfig as ViteUserConfig, Plugin as VitePlugin, LibraryFormats } from 'vite';
-import type { 
-  EnhanceConfig, 
-  EnhanceFeatureConfig, 
-  CDNOptions, 
-  CacheOptions, 
-  AnalyzeOptions, 
+import type {
+  EnhanceConfig,
+  EnhanceFeatureConfig,
+  EnhancePlugin,
+  CDNOptions,
+  CacheOptions,
+  AnalyzeOptions,
   PWAOptions,
+  CompressOptions,
   VuePluginOptions,
 } from '../shared/index.js';
 import { getPackageName } from '../shared/package-utils.js';
 import { createLogger } from '../shared/logger.js';
 import { detectFramework, detectPreset } from './detectors.js';
+import { applyDefaults } from './defaults.js';
 import { createFrameworkPlugin, tryImportPlugin } from './plugin-factory.js';
-import { createCompressPlugin } from '../plugins/compress/index.js';
+import { createAnalyzePlugin } from '../plugins/analyze/index.js';
+import { createCachePlugin } from '../plugins/cache/index.js';
 import { createCDNPlugin } from '../plugins/cdn/index.js';
+import { createCompressPlugin } from '../plugins/compress/index.js';
+import { createPWAPlugin } from '../plugins/pwa/index.js';
 
 const logger = createLogger('vite-integration');
 
@@ -22,11 +28,11 @@ const logger = createLogger('vite-integration');
  */
 function getBuildOutDir(preset: string | { name: string } | undefined): string {
   const presetName = typeof preset === 'string' ? preset : preset?.name;
-  
+
   if (presetName === 'lib') {
     return 'dist';
   }
-  
+
   return `dist/${getPackageName()}`;
 }
 
@@ -62,77 +68,73 @@ function getDefaultRollupOptions(): { output: { exports: 'named' } } {
  * Normalize config to extract enhance features
  */
 function normalizeConfig(config: EnhanceConfig): EnhanceFeatureConfig {
-  if (config.enhance) {
-    const normalized = { ...config.enhance };
-    
-    if (normalized.preset === undefined) {
-      const detected = detectPreset();
-      // Only use 'app' or 'lib', ignore 'monorepo'
-      normalized.preset = detected === 'monorepo' ? 'app' : detected;
-    }
-    
-    return normalized;
+  const normalized = { ...(config.enhance ?? {}) };
+
+  if (normalized.preset === undefined) {
+    normalized.preset = detectPreset() === 'lib' ? 'lib' : 'app';
   }
-  
-  return {};
+
+  return normalized;
 }
 
 /**
  * Convert EnhanceConfig to ViteConfig
  */
 export function createViteConfig(config: EnhanceConfig): ViteUserConfig {
-  const normalizedConfig = normalizeConfig(config);
+  const mergedConfig = applyDefaults(config);
+  const normalizedConfig = normalizeConfig(mergedConfig);
   const outDir = getBuildOutDir(normalizedConfig.preset);
-  const presetName = typeof normalizedConfig.preset === 'string' 
-    ? normalizedConfig.preset 
+  const presetName = typeof normalizedConfig.preset === 'string'
+    ? normalizedConfig.preset
     : normalizedConfig.preset?.name;
   const isLibBuild = presetName === 'lib';
-  
-  // Build configuration - handle null/undefined safely
-  const viteBuild = config.vite?.build;
+
+  const viteBuild = mergedConfig.vite?.build;
   const buildConfig: ViteUserConfig['build'] = {
     ...(viteBuild && typeof viteBuild === 'object' ? viteBuild : {}),
     outDir: viteBuild?.outDir || outDir,
   };
-  
-  // Library build defaults
+
   if (isLibBuild) {
     const defaultLib = getDefaultLibConfig();
     const defaultRollup = getDefaultRollupOptions();
-    
+
     buildConfig.lib = viteBuild?.lib
       ? { ...defaultLib, ...viteBuild.lib }
       : defaultLib;
-    
+
     const rollupOptions = viteBuild?.rollupOptions;
     const rollupOutput = rollupOptions?.output;
-    
+
+    const output = Array.isArray(rollupOutput)
+      ? rollupOutput
+      : {
+          ...defaultRollup.output,
+          ...(rollupOutput && typeof rollupOutput === 'object'
+            ? rollupOutput as Record<string, unknown>
+            : {}),
+        };
+
     buildConfig.rollupOptions = rollupOptions
       ? {
           ...defaultRollup,
           ...rollupOptions,
-          output: {
-            ...defaultRollup.output,
-            ...(rollupOutput && typeof rollupOutput === 'object' && !Array.isArray(rollupOutput) 
-              ? rollupOutput as Record<string, unknown> 
-              : {}),
-          },
+          output,
         }
       : defaultRollup;
   }
-  
-  // Collect all plugins - ensure arrays
-  const vitePlugins = config.vite?.plugins;
-  const extraPlugins = config.plugins;
-  
+
+  const vitePlugins = mergedConfig.vite?.plugins;
+  const extraPlugins = mergedConfig.plugins;
+
   const plugins: VitePlugin[] = [
     ...(Array.isArray(vitePlugins) ? vitePlugins as VitePlugin[] : []),
     ...(Array.isArray(extraPlugins) ? extraPlugins as VitePlugin[] : []),
     ...createEnhancePlugins(normalizedConfig),
   ];
-  
+
   return {
-    ...config.vite,
+    ...mergedConfig.vite,
     build: buildConfig,
     plugins,
   };
@@ -143,14 +145,12 @@ export function createViteConfig(config: EnhanceConfig): ViteUserConfig {
  */
 function createEnhancePlugins(config: EnhanceFeatureConfig): VitePlugin[] {
   const plugins: VitePlugin[] = [];
-  const presetName = typeof config.preset === 'string' 
-    ? config.preset 
+  const presetName = typeof config.preset === 'string'
+    ? config.preset
     : config.preset?.name || 'app';
 
-  // Framework plugins
   plugins.push(...createFrameworkPlugins(config));
 
-  // Feature plugins based on preset
   if (presetName === 'app') {
     plugins.push(...createAppFeaturePlugins(config));
   } else if (presetName === 'lib') {
@@ -166,23 +166,17 @@ function createEnhancePlugins(config: EnhanceFeatureConfig): VitePlugin[] {
 function createFrameworkPlugins(config: EnhanceFeatureConfig): VitePlugin[] {
   const plugins: VitePlugin[] = [];
   const detectedFramework = detectFramework(config);
-
-  // Map of framework to config key
   const frameworks = ['vue', 'react', 'svelte', 'solid', 'lit', 'preact'] as const;
 
   for (const framework of frameworks) {
     const configValue = config[framework];
-    
-    // Skip if explicitly disabled
+
     if (configValue === false) continue;
-    
-    // Create plugin if explicitly configured or auto-detected
+
     if (configValue || detectedFramework === framework) {
-      // Handle null case: typeof null === 'object'
       const options = (typeof configValue === 'object' && configValue !== null) ? configValue : {};
       plugins.push(...createFrameworkPlugin(framework, options as Record<string, unknown>));
-      
-      // Add Vue DevTools if Vue
+
       if (framework === 'vue' && typeof configValue === 'object' && configValue !== null) {
         const vueOptions = configValue as VuePluginOptions;
         if (vueOptions.devtools && vueOptions.devtools.enabled !== false) {
@@ -203,7 +197,7 @@ function createVueDevToolsPlugin(options: Record<string, unknown>): VitePlugin[]
   if (!plugin || typeof plugin !== 'function') {
     return [];
   }
-  
+
   try {
     const result = (plugin as (opts: unknown) => VitePlugin | VitePlugin[])(options);
     return Array.isArray(result) ? result : [result];
@@ -218,38 +212,36 @@ function createVueDevToolsPlugin(options: Record<string, unknown>): VitePlugin[]
 function createAppFeaturePlugins(config: EnhanceFeatureConfig): VitePlugin[] {
   const plugins: VitePlugin[] = [];
 
-  // CDN plugin
   if (config.cdn !== false && config.cdn !== undefined) {
-    plugins.push(...createCDNPluginInternal(config.cdn as boolean | CDNOptions));
+    const cdnOptions = config.cdn === true ? {} : config.cdn;
+    appendEnhancePluginFromFactory(plugins, 'CDN', () => createCDNPlugin(cdnOptions as CDNOptions));
   }
 
-  // Cache plugin
   if (config.cache !== false && config.cache !== undefined) {
-    plugins.push(...createCachePluginInternal(config.cache as boolean | CacheOptions));
+    const cacheOptions = config.cache === true ? {} : config.cache;
+    appendEnhancePluginFromFactory(plugins, 'cache', () => createCachePlugin(cacheOptions as CacheOptions));
   }
 
-  // Analyze plugin
-  if (config.analyze) {
-    plugins.push(...createAnalyzePluginInternal(config.analyze as boolean | AnalyzeOptions));
+  if (shouldEnableAnalyze(config.analyze)) {
+    const analyzeOptions = config.analyze === true ? {} : config.analyze;
+    appendEnhancePluginFromFactory(
+      plugins,
+      'analyze',
+      () => createAnalyzePlugin(analyzeOptions as AnalyzeOptions)
+    );
   }
 
-  // PWA plugin
   if (config.pwa) {
-    plugins.push(...createPWAPluginInternal(config.pwa as boolean | PWAOptions));
+    const pwaOptions = config.pwa === true ? {} : config.pwa;
+    appendEnhancePluginFromFactory(plugins, 'PWA', () => createPWAPlugin(pwaOptions as PWAOptions));
   }
 
-  // Compress plugin
-  if (config.compress !== false) {
-    const compressOptions = config.compress === true ? {} : (config.compress || {});
-    const compressPluginInstance = createCompressPlugin(compressOptions);
-    const compressVitePlugins = compressPluginInstance.vitePlugin?.();
-    if (compressVitePlugins) {
-      if (Array.isArray(compressVitePlugins)) {
-        plugins.push(...compressVitePlugins);
-      } else {
-        plugins.push(compressVitePlugins);
-      }
-    }
+  if (shouldEnableCompressionForPreset(config.compress, 'app')) {
+    appendEnhancePluginFromFactory(
+      plugins,
+      'compress',
+      () => createCompressPlugin(resolveCompressOptions(config.compress))
+    );
   }
 
   return plugins;
@@ -261,109 +253,85 @@ function createAppFeaturePlugins(config: EnhanceFeatureConfig): VitePlugin[] {
 function createLibFeaturePlugins(config: EnhanceFeatureConfig): VitePlugin[] {
   const plugins: VitePlugin[] = [];
 
-  // Compress plugin
-  if (config.compress !== false) {
-    const compressOptions = config.compress === true ? {} : (config.compress || {});
-    const compressPluginInstance = createCompressPlugin(compressOptions);
-    const compressVitePlugins = compressPluginInstance.vitePlugin?.();
-    if (compressVitePlugins) {
-      if (Array.isArray(compressVitePlugins)) {
-        plugins.push(...compressVitePlugins);
-      } else {
-        plugins.push(compressVitePlugins);
-      }
-    }
+  if (shouldEnableCompressionForPreset(config.compress, 'lib')) {
+    appendEnhancePluginFromFactory(
+      plugins,
+      'compress',
+      () => createCompressPlugin(resolveCompressOptions(config.compress))
+    );
   }
 
-  // Analyze plugin
-  if (config.analyze) {
-    plugins.push(...createAnalyzePluginInternal(config.analyze as boolean | AnalyzeOptions));
+  if (shouldEnableAnalyze(config.analyze)) {
+    const analyzeOptions = config.analyze === true ? {} : config.analyze;
+    appendEnhancePluginFromFactory(
+      plugins,
+      'analyze',
+      () => createAnalyzePlugin(analyzeOptions as AnalyzeOptions)
+    );
   }
 
   return plugins;
 }
 
-/**
- * Create CDN plugin with enhanced configuration
- * Uses our internal CDN plugin implementation with auto-detection support
- */
-function createCDNPluginInternal(options: boolean | CDNOptions): VitePlugin[] {
-  // Convert boolean/options to CDNOptions
-  const opts = options === true ? {} : (options === false ? null : options);
-  
+function shouldEnableAnalyze(analyze: boolean | AnalyzeOptions | undefined): boolean {
+  if (analyze === undefined || analyze === false) {
+    return false;
+  }
+  if (analyze === true) {
+    return true;
+  }
+  return analyze.enabled !== false;
+}
+
+function shouldEnableCompressionForPreset(
+  compress: boolean | CompressOptions | undefined,
+  preset: 'app' | 'lib'
+): boolean {
+  if (compress === false) {
+    return false;
+  }
+  if (compress === true || compress === undefined) {
+    return true;
+  }
+  if (compress.enabled === false) {
+    return false;
+  }
+  if (preset === 'lib' && (compress.disableForLib === true || compress.appOnly === true)) {
+    return false;
+  }
+  return true;
+}
+
+function resolveCompressOptions(compress: boolean | CompressOptions | undefined): CompressOptions {
+  if (compress === true || compress === undefined) {
+    return {};
+  }
+  if (compress === false) {
+    return { enabled: false };
+  }
+  return compress;
+}
+
+function appendEnhancePluginFromFactory(
+  plugins: VitePlugin[],
+  name: string,
+  factory: () => EnhancePlugin
+): void {
   try {
-    const cdnPlugin = createCDNPlugin(opts);
-    const vitePlugins = cdnPlugin.vitePlugin?.();
-    
-    if (vitePlugins) {
-      if (Array.isArray(vitePlugins)) {
-        return vitePlugins;
-      }
-      return [vitePlugins];
-    }
-    return [];
+    appendEnhancePlugin(plugins, factory());
   } catch (error) {
-    logger.error('Failed to create CDN plugin:', error);
-    return [];
+    logger.error(`Failed to create ${name} plugin:`, error);
   }
 }
 
-/**
- * Create Cache plugin
- */
-function createCachePluginInternal(options: boolean | CacheOptions): VitePlugin[] {
-  const cachePlugin = tryImportPlugin('vite-plugin-cache');
-  if (!cachePlugin) {
-    logger.debug('vite-plugin-cache not found, skipping cache plugin');
-    return [];
+function appendEnhancePlugin(plugins: VitePlugin[], plugin: EnhancePlugin): void {
+  const vitePlugins = plugin.vitePlugin?.();
+  if (!vitePlugins) {
+    return;
   }
-
-  try {
-    const opts = options === true ? {} : options;
-    const plugin = (cachePlugin as (opts: unknown) => VitePlugin)(opts);
-    return [plugin];
-  } catch (error) {
-    logger.error('Failed to create cache plugin:', error);
-    return [];
-  }
-}
-
-/**
- * Create Analyze plugin
- */
-function createAnalyzePluginInternal(options: boolean | AnalyzeOptions): VitePlugin[] {
-  const visualizer = tryImportPlugin('rollup-plugin-visualizer');
-  if (!visualizer) {
-    logger.warn('rollup-plugin-visualizer not found. Please install it for bundle analysis.');
-    return [];
-  }
-
-  try {
-    const opts = options === true ? { open: true } : options;
-    const plugin = (visualizer as (opts: unknown) => VitePlugin)(opts);
-    return [plugin];
-  } catch (error) {
-    logger.error('Failed to create analyze plugin:', error);
-    return [];
-  }
-}
-
-/**
- * Create PWA plugin
- */
-function createPWAPluginInternal(options: boolean | PWAOptions): VitePlugin[] {
-  const pwa = tryImportPlugin('vite-plugin-pwa');
-  if (!pwa) {
-    logger.warn('vite-plugin-pwa not found. Please install it for PWA support.');
-    return [];
-  }
-
-  try {
-    const opts = options === true ? {} : options;
-    const result = (pwa as (opts: unknown) => VitePlugin | VitePlugin[])(opts);
-    return Array.isArray(result) ? result : [result];
-  } catch (error) {
-    logger.error('Failed to create PWA plugin:', error);
-    return [];
+  if (Array.isArray(vitePlugins)) {
+    plugins.push(...vitePlugins);
+  } else {
+    plugins.push(vitePlugins);
   }
 }

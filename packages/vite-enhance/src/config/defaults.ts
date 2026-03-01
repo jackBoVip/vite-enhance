@@ -21,9 +21,15 @@ export const defaultConfig: Partial<EnhanceConfig> = {
  * @returns Configuration with defaults applied
  */
 export function applyDefaults(config: Partial<EnhanceConfig> = {}): EnhanceConfig {
+  const mergedEnhance = {
+    ...(defaultConfig.enhance || {}),
+    ...(config.enhance || {}),
+  };
+
   return {
     ...defaultConfig,
     ...config,
+    enhance: mergedEnhance,
     // Merge arrays instead of replacing them
     plugins: [
       ...(defaultConfig.plugins || []),

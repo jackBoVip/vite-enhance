@@ -134,8 +134,8 @@ import { defineEnhanceConfig } from 'vite-enhance'
 
 export default defineEnhanceConfig({
   enhance: {
-    // 所有功能都会自动检测和配置
-    // 无需任何配置即可使用！
+    // 自动检测项目类型与框架
+    // 使用默认能力（cache/compress 默认开启）
   }
 })
 ```
@@ -146,7 +146,7 @@ export default defineEnhanceConfig({
 # 开发模式（自动检测框架）
 npm run dev
 
-# 构建生产版本（自动 CDN 外部化、压缩等）
+# 构建生产版本（按配置启用 CDN / 分析 / PWA / 压缩等）
 npm run build
 
 # 预览构建结果
@@ -727,4 +727,3 @@ rm -rf packages/*/dist examples/*/dist
 ### 依赖管理
 
 本项目使用 pnpm workspace catalog 统一管理依赖版本，详见上方"依赖管理"章节。
-

@@ -30,18 +30,18 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "zod": "^4.2.1",
-    "tar": "^7.4.3",
-    "archiver": "^7.0.1"
+    "zod": "catalog:",
+    "tar": "catalog:",
+    "archiver": "catalog:"
   },
   "devDependencies": {
-    "typescript": "^5.9.3",
-    "@types/node": "^25.0.3",
-    "@types/tar": "^6.1.13",
-    "@types/archiver": "^6.0.3",
-    "eslint": "^9.0.0",
-    "@typescript-eslint/eslint-plugin": "^8.0.0",
-    "@typescript-eslint/parser": "^8.0.0"
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/tar": "catalog:",
+    "@types/archiver": "catalog:",
+    "eslint": "catalog:",
+    "@typescript-eslint/eslint-plugin": "catalog:",
+    "@typescript-eslint/parser": "catalog:"
   },
   "peerDependencies": {
     "vite": "^5.0.0 || ^6.0.0 || ^7.0.0",

@@ -9,9 +9,11 @@ catalog:
   
   # TypeScript & Types
   typescript: ^5.9.3
+  vue-tsc: ^3.1.4
   "@types/node": ^25.0.3
   "@types/react": ^19.2.7
   "@types/react-dom": ^19.2.3
+  "@vue/tsconfig": ^0.8.1
   
   # Framework Plugins
   "@vitejs/plugin-vue": ^6.0.3
@@ -21,6 +23,8 @@ catalog:
   "@preact/preset-vite": ^2.8.2
   
   # Development Tools
+  "@typescript-eslint/eslint-plugin": ^8.0.0
+  "@typescript-eslint/parser": ^8.0.0
   vite-plugin-vue-devtools: ^8.0.5
   vite-plugin-pwa: ^1.2.0
   vite-plugin-cdn-import: ^1.0.1
@@ -38,8 +42,13 @@ catalog:
   
   # Framework Libraries
   vue: ^3.5.26
+  vue-router: ^4.2.0
+  pinia: ^2.1.0
   react: ^19.2.3
   react-dom: ^19.2.3
+  axios: ^1.6.0
+  lodash-es: ^4.17.21
+  dayjs: ^1.11.10
   
   # Development Dependencies
   "@changesets/cli": ^2.29.8

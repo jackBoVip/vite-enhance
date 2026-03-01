@@ -29,13 +29,14 @@ export function createPWAPlugin(options: CreatePWAPluginOptions | null = {}): En
     
     vitePlugin(): VitePlugin[] {
       const VitePWA = tryImportPlugin('vite-plugin-pwa');
-      
-      if (!VitePWA || typeof VitePWA !== 'function') {
-        logger.warn('vite-plugin-pwa not found. Please install it for PWA support.');
+
+      const pwaFactory = resolvePWAFactory(VitePWA);
+      if (!pwaFactory) {
+        logger.warn('vite-plugin-pwa not found or has no callable export. Please install it for PWA support.');
         return [];
       }
 
-      const pwaPlugins = VitePWA({
+      const pwaPlugins = pwaFactory({
         registerType,
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
@@ -64,3 +65,20 @@ export function createPWAPlugin(options: CreatePWAPluginOptions | null = {}): En
 }
 
 export default createPWAPlugin;
+
+function resolvePWAFactory(
+  plugin: unknown
+): ((opts: unknown) => VitePlugin | VitePlugin[]) | null {
+  if (typeof plugin === 'function') {
+    return plugin as (opts: unknown) => VitePlugin | VitePlugin[];
+  }
+
+  if (plugin && typeof plugin === 'object') {
+    const namedExport = (plugin as Record<string, unknown>).VitePWA;
+    if (typeof namedExport === 'function') {
+      return namedExport as (opts: unknown) => VitePlugin | VitePlugin[];
+    }
+  }
+
+  return null;
+}

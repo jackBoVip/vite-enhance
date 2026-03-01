@@ -236,6 +236,18 @@ export interface CompressOptions {
    * @default true
    */
   enabled?: boolean;
+
+  /**
+   * 仅在应用构建启用，库构建时禁用
+   * @default false
+   */
+  appOnly?: boolean;
+
+  /**
+   * 库构建时禁用压缩
+   * @default false
+   */
+  disableForLib?: boolean;
   
   /**
    * 自定义压缩文件名（不含扩展名）

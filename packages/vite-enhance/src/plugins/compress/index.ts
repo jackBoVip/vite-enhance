@@ -116,11 +116,14 @@ export function createCompressPlugin(options: CreateCompressPluginOptions | null
     format = 'tar',
     outputDir = 'dist/lib',
     enabled = true,
+    appOnly = false,
+    disableForLib = false,
     fileName,
   } = safeOptions;
 
   let outDir: string | undefined;
   let packageName: string;
+  let isLibBuild = false;
 
   return {
     name: 'enhance:compress',
@@ -136,11 +139,17 @@ export function createCompressPlugin(options: CreateCompressPluginOptions | null
           configResolved(config) {
             outDir = config.build.outDir;
             packageName = fileName || getPackageName();
+            isLibBuild = Boolean(config.build.lib);
           },
 
           async closeBundle() {
             if (!enabled) {
               logger.debug('Compression disabled');
+              return;
+            }
+
+            if (isLibBuild && (disableForLib || appOnly)) {
+              logger.debug('Compression skipped for lib build by configuration');
               return;
             }
 
@@ -212,8 +221,11 @@ export function createCompressPlugin(options: CreateCompressPluginOptions | null
 export const compressPlugin = (options: CompressOptions = {}): VitePlugin => {
   const plugin = createCompressPlugin(options);
   const vitePlugins = plugin.vitePlugin?.();
-  if (Array.isArray(vitePlugins) && vitePlugins.length > 0) {
-    return vitePlugins[0];
+  if (Array.isArray(vitePlugins)) {
+    const [firstPlugin] = vitePlugins;
+    if (firstPlugin) {
+      return firstPlugin;
+    }
   }
   if (vitePlugins && !Array.isArray(vitePlugins)) {
     return vitePlugins;

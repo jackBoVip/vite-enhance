@@ -16,6 +16,7 @@ export interface CreateAnalyzePluginOptions extends AnalyzeOptions {
 export function createAnalyzePlugin(options: CreateAnalyzePluginOptions | null = {}): EnhancePlugin {
   const safeOptions = options || {};
   const {
+    enabled = true,
     open = true,
     filename = 'dist/stats.html',
     template = 'treemap',
@@ -32,6 +33,10 @@ export function createAnalyzePlugin(options: CreateAnalyzePluginOptions | null =
     apply: 'build',
     
     vitePlugin(): VitePlugin[] {
+      if (!enabled) {
+        return [];
+      }
+
       const visualizer = tryImportPlugin('rollup-plugin-visualizer');
       
       if (!visualizer || typeof visualizer !== 'function') {
@@ -82,10 +87,16 @@ export function createAnalyzePlugin(options: CreateAnalyzePluginOptions | null =
     },
     
     buildStart() {
+      if (!enabled) {
+        return;
+      }
       logger.info(`Bundle analysis enabled (output: ${filename})`);
     },
     
     buildEnd(context) {
+      if (!enabled) {
+        return;
+      }
       if (context.endTime && context.startTime) {
         const duration = context.endTime - context.startTime;
         logger.success(`Bundle analysis completed in ${duration}ms`);
@@ -93,6 +104,9 @@ export function createAnalyzePlugin(options: CreateAnalyzePluginOptions | null =
     },
     
     configResolved() {
+      if (!enabled) {
+        return;
+      }
       logger.info('Bundle analysis plugin initialized');
     },
   };

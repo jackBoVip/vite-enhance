@@ -11,6 +11,15 @@ import yaml from 'js-yaml';
  */
 
 const WORKSPACE_ROOT = process.cwd();
+const OPTIONAL_UNUSED_CATALOG = new Set([
+  'tsup',
+  '@sveltejs/vite-plugin-svelte',
+  'vite-plugin-solid',
+  '@preact/preset-vite',
+  'vite-plugin-vue-devtools',
+  'vite-plugin-cdn-import',
+  'vite-plugin-cache',
+]);
 const COLORS = {
   red: '\x1b[31m',
   green: '\x1b[32m',
@@ -46,12 +55,11 @@ function readWorkspaceCatalog() {
 
 function findPackages() {
   const packagePaths = glob.sync('packages/*/package.json', { cwd: WORKSPACE_ROOT });
-  const pluginPaths = glob.sync('packages/plugins/*/package.json', { cwd: WORKSPACE_ROOT });
   const examplePaths = glob.sync('examples/*/package.json', { cwd: WORKSPACE_ROOT });
   
   // Include root package.json
   const rootPackagePath = 'package.json';
-  const allPaths = [rootPackagePath, ...packagePaths, ...pluginPaths, ...examplePaths];
+  const allPaths = [rootPackagePath, ...packagePaths, ...examplePaths];
   
   return allPaths.map(path => {
     const fullPath = join(WORKSPACE_ROOT, path);
@@ -276,7 +284,7 @@ function validateCatalogCompleteness(packages, catalog) {
 
   // Check for unused catalog entries
   catalogEntries.forEach(catalogDep => {
-    if (!externalDeps.has(catalogDep)) {
+    if (!externalDeps.has(catalogDep) && !OPTIONAL_UNUSED_CATALOG.has(catalogDep)) {
       log(`⚠️  Catalog entry '${catalogDep}' is not used by any package`, 'yellow');
     }
   });

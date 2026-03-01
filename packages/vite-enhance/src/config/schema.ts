@@ -177,6 +177,8 @@ const CompressOptionsSchema = z.object({
   format: z.enum(['tar', 'tar.gz', 'zip']).optional(),
   outputDir: z.string().optional(),
   enabled: z.boolean().optional(),
+  appOnly: z.boolean().optional(),
+  disableForLib: z.boolean().optional(),
   fileName: z.string().optional(),
 }).strict();
 

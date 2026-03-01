@@ -19,10 +19,10 @@
     "build:zip": "COMPRESS_FORMAT=zip vite build"
   },
   "devDependencies": {
-    "typescript": "^5.9.0",
-    "vite": "^7.0.0",
+    "typescript": "catalog:",
+    "vite": "catalog:",
     "vite-enhance": "workspace:*",
-    "archiver": "^7.0.0",
-    "tar": "^7.0.0"
+    "archiver": "catalog:",
+    "tar": "catalog:"
   }
 }

@@ -9,9 +9,45 @@ catalogs:
     '@changesets/cli':
       specifier: ^2.29.8
       version: 2.29.8
+    '@types/archiver':
+      specifier: ^6.0.3
+      version: 6.0.4
     '@types/node':
       specifier: ^25.0.3
       version: 25.0.3
+    '@types/react':
+      specifier: ^19.2.7
+      version: 19.2.14
+    '@types/react-dom':
+      specifier: ^19.2.3
+      version: 19.2.3
+    '@types/tar':
+      specifier: ^6.1.13
+      version: 6.1.13
+    '@typescript-eslint/eslint-plugin':
+      specifier: ^8.0.0
+      version: 8.54.0
+    '@typescript-eslint/parser':
+      specifier: ^8.0.0
+      version: 8.54.0
+    '@vitejs/plugin-react':
+      specifier: ^5.1.2
+      version: 5.1.2
+    '@vitejs/plugin-vue':
+      specifier: ^6.0.3
+      version: 6.0.3
+    '@vue/tsconfig':
+      specifier: ^0.8.1
+      version: 0.8.1
+    archiver:
+      specifier: ^7.0.1
+      version: 7.0.1
+    axios:
+      specifier: ^1.6.0
+      version: 1.13.4
+    dayjs:
+      specifier: ^1.11.10
+      version: 1.11.19
     eslint:
       specifier: ^9.39.2
       version: 9.39.2
@@ -21,15 +57,51 @@ catalogs:
     js-yaml:
       specifier: ^4.1.1
       version: 4.1.1
+    lodash-es:
+      specifier: ^4.17.21
+      version: 4.17.23
+    pinia:
+      specifier: ^2.1.0
+      version: 2.3.1
     prettier:
       specifier: ^3.7.4
       version: 3.7.4
+    react:
+      specifier: ^19.2.3
+      version: 19.2.4
+    react-dom:
+      specifier: ^19.2.3
+      version: 19.2.4
+    rimraf:
+      specifier: ^6.0.1
+      version: 6.1.3
+    rollup-plugin-visualizer:
+      specifier: ^6.0.5
+      version: 6.0.5
+    tar:
+      specifier: ^7.4.3
+      version: 7.5.2
     typescript:
       specifier: ^5.9.3
       version: 5.9.3
     vite:
       specifier: ^7.3.0
       version: 7.3.0
+    vite-plugin-pwa:
+      specifier: ^1.2.0
+      version: 1.2.0
+    vue:
+      specifier: ^3.5.26
+      version: 3.5.26
+    vue-router:
+      specifier: ^4.2.0
+      version: 4.6.4
+    vue-tsc:
+      specifier: ^3.1.4
+      version: 3.2.1
+    zod:
+      specifier: ^4.2.1
+      version: 4.2.1
 
 importers:
 
@@ -63,26 +135,26 @@ importers:
   examples/analyze-demo:
     dependencies:
       dayjs:
-        specifier: ^1.11.10
+        specifier: 'catalog:'
         version: 1.11.19
       lodash-es:
-        specifier: ^4.17.21
+        specifier: 'catalog:'
         version: 4.17.23
       vue:
-        specifier: ^3.4.0
+        specifier: 'catalog:'
         version: 3.5.26(typescript@5.9.3)
     devDependencies:
       '@vitejs/plugin-vue':
-        specifier: ^6.0.0
+        specifier: 'catalog:'
         version: 6.0.3(vite@7.3.0(@types/node@25.0.3)(terser@5.44.1))(vue@3.5.26(typescript@5.9.3))
       rollup-plugin-visualizer:
-        specifier: ^6.0.0
+        specifier: 'catalog:'
         version: 6.0.5(rollup@4.54.0)
       typescript:
-        specifier: ^5.9.0
+        specifier: 'catalog:'
         version: 5.9.3
       vite:
-        specifier: ^7.0.0
+        specifier: 'catalog:'
         version: 7.3.0(@types/node@25.0.3)(terser@5.44.1)
       vite-enhance:
         specifier: workspace:*
@@ -91,7 +163,7 @@ importers:
   examples/app-build-test:
     devDependencies:
       vite:
-        specifier: ^7.3.0
+        specifier: 'catalog:'
         version: 7.3.0(@types/node@25.0.3)(terser@5.44.1)
       vite-enhance:
         specifier: workspace:*
@@ -100,20 +172,20 @@ importers:
   examples/cache-demo:
     dependencies:
       vue:
-        specifier: ^3.4.0
+        specifier: 'catalog:'
         version: 3.5.26(typescript@5.9.3)
     devDependencies:
       '@vitejs/plugin-vue':
-        specifier: ^6.0.0
+        specifier: 'catalog:'
         version: 6.0.3(vite@7.3.0(@types/node@25.0.3)(terser@5.44.1))(vue@3.5.26(typescript@5.9.3))
       rimraf:
-        specifier: ^5.0.0
-        version: 5.0.10
+        specifier: 'catalog:'
+        version: 6.1.3
       typescript:
-        specifier: ^5.9.0
+        specifier: 'catalog:'
         version: 5.9.3
       vite:
-        specifier: ^7.0.0
+        specifier: 'catalog:'
         version: 7.3.0(@types/node@25.0.3)(terser@5.44.1)
       vite-enhance:
         specifier: workspace:*
@@ -122,23 +194,23 @@ importers:
   examples/cdn-demo:
     dependencies:
       axios:
-        specifier: ^1.6.0
+        specifier: 'catalog:'
         version: 1.13.4
       lodash-es:
-        specifier: ^4.17.21
+        specifier: 'catalog:'
         version: 4.17.23
       vue:
-        specifier: ^3.4.0
+        specifier: 'catalog:'
         version: 3.5.26(typescript@5.9.3)
     devDependencies:
       '@vitejs/plugin-vue':
-        specifier: ^6.0.0
+        specifier: 'catalog:'
         version: 6.0.3(vite@7.3.0(@types/node@25.0.3)(terser@5.44.1))(vue@3.5.26(typescript@5.9.3))
       typescript:
-        specifier: ^5.9.0
+        specifier: 'catalog:'
         version: 5.9.3
       vite:
-        specifier: ^7.0.0
+        specifier: 'catalog:'
         version: 7.3.0(@types/node@25.0.3)(terser@5.44.1)
       vite-enhance:
         specifier: workspace:*
@@ -147,16 +219,16 @@ importers:
   examples/compress-demo:
     devDependencies:
       archiver:
-        specifier: ^7.0.0
+        specifier: 'catalog:'
         version: 7.0.1
       tar:
-        specifier: ^7.0.0
+        specifier: 'catalog:'
         version: 7.5.2
       typescript:
-        specifier: ^5.9.0
+        specifier: 'catalog:'
         version: 5.9.3
       vite:
-        specifier: ^7.0.0
+        specifier: 'catalog:'
         version: 7.3.0(@types/node@25.0.3)(terser@5.44.1)
       vite-enhance:
         specifier: workspace:*
@@ -165,44 +237,44 @@ importers:
   examples/full-features-demo:
     dependencies:
       axios:
-        specifier: ^1.6.0
+        specifier: 'catalog:'
         version: 1.13.4
       pinia:
-        specifier: ^2.1.0
+        specifier: 'catalog:'
         version: 2.3.1(typescript@5.9.3)(vue@3.5.26(typescript@5.9.3))
       vue:
-        specifier: ^3.4.0
+        specifier: 'catalog:'
         version: 3.5.26(typescript@5.9.3)
       vue-router:
-        specifier: ^4.2.0
+        specifier: 'catalog:'
         version: 4.6.4(vue@3.5.26(typescript@5.9.3))
     devDependencies:
       '@vitejs/plugin-vue':
-        specifier: ^6.0.0
+        specifier: 'catalog:'
         version: 6.0.3(vite@7.3.0(@types/node@25.0.3)(terser@5.44.1))(vue@3.5.26(typescript@5.9.3))
       rollup-plugin-visualizer:
-        specifier: ^6.0.0
+        specifier: 'catalog:'
         version: 6.0.5(rollup@2.79.2)
       typescript:
-        specifier: ^5.9.0
+        specifier: 'catalog:'
         version: 5.9.3
       vite:
-        specifier: ^7.0.0
+        specifier: 'catalog:'
         version: 7.3.0(@types/node@25.0.3)(terser@5.44.1)
       vite-enhance:
         specifier: workspace:*
         version: link:../../packages/vite-enhance
       vite-plugin-pwa:
-        specifier: ^1.0.0
+        specifier: 'catalog:'
         version: 1.2.0(vite@7.3.0(@types/node@25.0.3)(terser@5.44.1))(workbox-build@7.4.0(@types/babel__core@7.20.5))(workbox-window@7.4.0)
 
   examples/lib-build-test:
     devDependencies:
       typescript:
-        specifier: ^5.9.3
+        specifier: 'catalog:'
         version: 5.9.3
       vite:
-        specifier: ^7.3.0
+        specifier: 'catalog:'
         version: 7.3.0(@types/node@25.0.3)(terser@5.44.1)
       vite-enhance:
         specifier: workspace:*
@@ -211,10 +283,10 @@ importers:
   examples/lib-custom-config:
     devDependencies:
       typescript:
-        specifier: ^5.9.3
+        specifier: 'catalog:'
         version: 5.9.3
       vite:
-        specifier: ^7.3.0
+        specifier: 'catalog:'
         version: 7.3.0(@types/node@25.0.3)(terser@5.44.1)
       vite-enhance:
         specifier: workspace:*
@@ -223,48 +295,48 @@ importers:
   examples/pwa-demo:
     dependencies:
       vue:
-        specifier: ^3.4.0
+        specifier: 'catalog:'
         version: 3.5.26(typescript@5.9.3)
     devDependencies:
       '@vitejs/plugin-vue':
-        specifier: ^6.0.0
+        specifier: 'catalog:'
         version: 6.0.3(vite@7.3.0(@types/node@25.0.3)(terser@5.44.1))(vue@3.5.26(typescript@5.9.3))
       typescript:
-        specifier: ^5.9.0
+        specifier: 'catalog:'
         version: 5.9.3
       vite:
-        specifier: ^7.0.0
+        specifier: 'catalog:'
         version: 7.3.0(@types/node@25.0.3)(terser@5.44.1)
       vite-enhance:
         specifier: workspace:*
         version: link:../../packages/vite-enhance
       vite-plugin-pwa:
-        specifier: ^1.0.0
+        specifier: 'catalog:'
         version: 1.2.0(vite@7.3.0(@types/node@25.0.3)(terser@5.44.1))(workbox-build@7.4.0(@types/babel__core@7.20.5))(workbox-window@7.4.0)
 
   examples/react-demo:
     dependencies:
       react:
-        specifier: ^18.2.0
-        version: 18.3.1
+        specifier: 'catalog:'
+        version: 19.2.4
       react-dom:
-        specifier: ^18.2.0
-        version: 18.3.1(react@18.3.1)
+        specifier: 'catalog:'
+        version: 19.2.4(react@19.2.4)
     devDependencies:
       '@types/react':
-        specifier: ^18.2.0
-        version: 18.3.27
+        specifier: 'catalog:'
+        version: 19.2.14
       '@types/react-dom':
-        specifier: ^18.2.0
-        version: 18.3.7(@types/react@18.3.27)
+        specifier: 'catalog:'
+        version: 19.2.3(@types/react@19.2.14)
       '@vitejs/plugin-react':
-        specifier: ^5.0.0
+        specifier: 'catalog:'
         version: 5.1.2(vite@7.3.0(@types/node@25.0.3)(terser@5.44.1))
       typescript:
-        specifier: ^5.9.0
+        specifier: 'catalog:'
         version: 5.9.3
       vite:
-        specifier: ^7.0.0
+        specifier: 'catalog:'
         version: 7.3.0(@types/node@25.0.3)(terser@5.44.1)
       vite-enhance:
         specifier: workspace:*
@@ -273,29 +345,29 @@ importers:
   examples/vue-ts-demo:
     dependencies:
       vue:
-        specifier: ^3.5.24
+        specifier: 'catalog:'
         version: 3.5.26(typescript@5.9.3)
     devDependencies:
       '@types/node':
-        specifier: ^24.10.1
-        version: 24.10.4
+        specifier: 'catalog:'
+        version: 25.0.3
       '@vitejs/plugin-vue':
-        specifier: ^6.0.1
-        version: 6.0.3(vite@7.3.0(@types/node@24.10.4)(terser@5.44.1))(vue@3.5.26(typescript@5.9.3))
+        specifier: 'catalog:'
+        version: 6.0.3(vite@7.3.0(@types/node@25.0.3)(terser@5.44.1))(vue@3.5.26(typescript@5.9.3))
       '@vue/tsconfig':
-        specifier: ^0.8.1
+        specifier: 'catalog:'
         version: 0.8.1(typescript@5.9.3)(vue@3.5.26(typescript@5.9.3))
       typescript:
-        specifier: ~5.9.3
+        specifier: 'catalog:'
         version: 5.9.3
       vite:
-        specifier: ^7.2.4
-        version: 7.3.0(@types/node@24.10.4)(terser@5.44.1)
+        specifier: 'catalog:'
+        version: 7.3.0(@types/node@25.0.3)(terser@5.44.1)
       vite-enhance:
         specifier: workspace:*
         version: link:../../packages/vite-enhance
       vue-tsc:
-        specifier: ^3.1.4
+        specifier: 'catalog:'
         version: 3.2.1(typescript@5.9.3)
 
   packages/vite-enhance:
@@ -313,13 +385,13 @@ importers:
         specifier: ^5.0.0 || ^6.0.0
         version: 6.0.3(vite@7.3.0(@types/node@25.0.3)(terser@5.44.1))(vue@3.5.26(typescript@5.9.3))
       archiver:
-        specifier: ^7.0.1
+        specifier: 'catalog:'
         version: 7.0.1
       rollup-plugin-visualizer:
         specifier: ^5.0.0 || ^6.0.0
         version: 5.14.0(rollup@4.54.0)
       tar:
-        specifier: ^7.4.3
+        specifier: 'catalog:'
         version: 7.5.2
       vite:
         specifier: ^5.0.0 || ^6.0.0 || ^7.0.0
@@ -334,29 +406,29 @@ importers:
         specifier: ^7.0.0 || ^8.0.0
         version: 8.0.5(vite@7.3.0(@types/node@25.0.3)(terser@5.44.1))(vue@3.5.26(typescript@5.9.3))
       zod:
-        specifier: ^4.2.1
+        specifier: 'catalog:'
         version: 4.2.1
     devDependencies:
       '@types/archiver':
-        specifier: ^6.0.3
+        specifier: 'catalog:'
         version: 6.0.4
       '@types/node':
-        specifier: ^25.0.3
+        specifier: 'catalog:'
         version: 25.0.3
       '@types/tar':
-        specifier: ^6.1.13
+        specifier: 'catalog:'
         version: 6.1.13
       '@typescript-eslint/eslint-plugin':
-        specifier: ^8.0.0
+        specifier: 'catalog:'
         version: 8.54.0(@typescript-eslint/parser@8.54.0(eslint@9.39.2)(typescript@5.9.3))(eslint@9.39.2)(typescript@5.9.3)
       '@typescript-eslint/parser':
-        specifier: ^8.0.0
+        specifier: 'catalog:'
         version: 8.54.0(eslint@9.39.2)(typescript@5.9.3)
       eslint:
-        specifier: ^9.0.0
+        specifier: 'catalog:'
         version: 9.39.2
       typescript:
-        specifier: ^5.9.3
+        specifier: 'catalog:'
         version: 5.9.3
 
 packages:
@@ -1506,22 +1578,16 @@ packages:
   '@types/node@12.20.55':
     resolution: {integrity: sha512-J8xLz7q2OFulZ2cyGTLE1TbbZcjpno7FaN6zdJNrgAdrJ+DZzh/uFR6YrTb4C+nXakvud8Q4+rbhoIWlYQbUFQ==}
 
-  '@types/node@24.10.4':
-    resolution: {integrity: sha512-vnDVpYPMzs4wunl27jHrfmwojOGKya0xyM3sH+UE5iv5uPS6vX7UIoh6m+vQc5LGBq52HBKPIn/zcSZVzeDEZg==}
-
   '@types/node@25.0.3':
     resolution: {integrity: sha512-W609buLVRVmeW693xKfzHeIV6nJGGz98uCPfeXI1ELMLXVeKYZ9m15fAMSaUPBHYLGFsVRcMmSCksQOrZV9BYA==}
 
-  '@types/prop-types@15.7.15':
-    resolution: {integrity: sha512-F6bEyamV9jKGAFBEmlQnesRPGOQqS2+Uwi0Em15xenOxHaf2hv6L8YCVn3rPdPJOiJfPiCnLIRyvwVaqMY3MIw==}
-
-  '@types/react-dom@18.3.7':
-    resolution: {integrity: sha512-MEe3UeoENYVFXzoXEWsvcpg6ZvlrFNlOQ7EOsvhI3CfAXwzPfO8Qwuxd40nepsYKqyyVQnTdEfv68q91yLcKrQ==}
+  '@types/react-dom@19.2.3':
+    resolution: {integrity: sha512-jp2L/eY6fn+KgVVQAOqYItbF0VY/YApe5Mz2F0aykSO8gx31bYCZyvSeYxCHKvzHG5eZjc+zyaS5BrBWya2+kQ==}
     peerDependencies:
-      '@types/react': ^18.0.0
+      '@types/react': ^19.2.0
 
-  '@types/react@18.3.27':
-    resolution: {integrity: sha512-cisd7gxkzjBKU2GgdYrTdtQx1SORymWyaAFhaxQPK9bYO9ot3Y5OikQRvY0VYQtvwjeQnizCINJAenh/V7MK2w==}
+  '@types/react@19.2.14':
+    resolution: {integrity: sha512-ilcTH/UniCkMdtexkoCN0bI7pMcJDvmQFPvuPvmEaYA/NSfFTAgdUSLAoVjaRJm7+6PvcM+q1zYOwS4wTYMF9w==}
 
   '@types/readdir-glob@1.1.5':
     resolution: {integrity: sha512-raiuEPUYqXu+nvtY2Pe8s8FEmZ3x5yAH4VkLdihcPdalvsHltomrRC9BzuStrJ9yk06470hS0Crw0f1pXqD+Hg==}
@@ -1842,6 +1908,10 @@ packages:
   balanced-match@1.0.2:
     resolution: {integrity: sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw==}
 
+  balanced-match@4.0.4:
+    resolution: {integrity: sha512-BLrgEcRTwX2o6gGxGOCNyMvGSp35YofuYzw9h1IMTRmKqttAZZVU67bdb9Pr2vUHA8+j3i2tJfjO6C6+4myGTA==}
+    engines: {node: 18 || 20 || >=22}
+
   bare-events@2.8.2:
     resolution: {integrity: sha512-riJjyv1/mHLIPX4RwiK+oW9/4c3TEUeORHKefKAKnZ5kyslbN+HXowtbaVEqt4IMUB7OXlfixcs6gsFeo/jhiQ==}
     peerDependencies:
@@ -1872,6 +1942,10 @@ packages:
 
   brace-expansion@2.0.2:
     resolution: {integrity: sha512-Jt0vHyM+jmUBqojB7E1NIYadt0vI0Qxjxd2TErW94wDz+E2LAm5vKMXXwg6ZZBTHPuUlDgQHKXvjGBdfcF1ZDQ==}
+
+  brace-expansion@5.0.4:
+    resolution: {integrity: sha512-h+DEnpVvxmfVefa4jFbCf5HdH5YMDXRsmKflpf1pILZWRFlTbJpxeU55nJl4Smt5HQaGzg1o6RHFPJaOqnmBDg==}
+    engines: {node: 18 || 20 || >=22}
 
   braces@3.0.3:
     resolution: {integrity: sha512-yQbXgO/OSZVD2IsiLlro+7Hf6Q18EJrKSEsdoMzKePKXct3gvD8oLcOQdIzGupr5Fj+EDe8gO/lxc1BzfMpxvA==}
@@ -2375,16 +2449,22 @@ packages:
 
   glob@10.5.0:
     resolution: {integrity: sha512-DfXN8DfhJ7NH3Oe7cFmu3NCu1wKbkReJ8TorzSAFbSKrlNaQSKfIzqYqVY8zlbs2NLBbWpRiU52GX2PbaBVNkg==}
+    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
     hasBin: true
 
   glob@11.1.0:
     resolution: {integrity: sha512-vuNwKSaKiqm7g0THUBu2x7ckSs3XJLXE+2ssL7/MfTGPLLcrJQ/4Uq1CjPTtO5cCIiRxqvN6Twy1qOwhL0Xjcw==}
     engines: {node: 20 || >=22}
+    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
     hasBin: true
 
   glob@13.0.0:
     resolution: {integrity: sha512-tvZgpqk6fz4BaNZ66ZsRaZnbHvP/jG3uKJvAZOwEVUL4RTA5nJeeLYfyN9/VA8NX/V3IBG+hkeuGpKjvELkVhA==}
     engines: {node: 20 || >=22}
+
+  glob@13.0.6:
+    resolution: {integrity: sha512-Wjlyrolmm8uDpm/ogGyXZXb1Z+Ca2B8NbJwqBVg0axK9GbBeoS7yGV6vjXnYdGm6X53iehEuxxbyiKp8QmN4Vw==}
+    engines: {node: 18 || 20 || >=22}
 
   globals@14.0.0:
     resolution: {integrity: sha512-oahGvuMGQlPw/ivIYBjVSrWAfWLBeku5tpPE2fOPLi+WHffIWbuh2tCjhyQhTBPMf5E9jDEH4FOmTYgYwbKwtQ==}
@@ -2758,10 +2838,6 @@ packages:
   lodash@4.17.21:
     resolution: {integrity: sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg==}
 
-  loose-envify@1.4.0:
-    resolution: {integrity: sha512-lyuxPGr/Wfhrlem2CL/UcnUc1zcqKAImBDzukY7Y5F/yQiNdko6+fRLevlw1HgMySw7f611UIY408EtxRSoK3Q==}
-    hasBin: true
-
   lru-cache@10.4.3:
     resolution: {integrity: sha512-JNAzZcXrCt42VGLuYz0zfAzDfAvJWW6AfYlDBQyDV5DClI2m5sAmK+OIO7s59XfsRsWHp02jAJrRadPRGTt6SQ==}
 
@@ -2809,6 +2885,10 @@ packages:
     resolution: {integrity: sha512-enIvLvRAFZYXJzkCYG5RKmPfrFArdLv+R+lbQ53BmIMLIry74bjKzX6iHAm8WYamJkhSSEabrWN5D97XnKObjQ==}
     engines: {node: 20 || >=22}
 
+  minimatch@10.2.4:
+    resolution: {integrity: sha512-oRjTw/97aTBN0RHbYCdtF1MQfvusSIBQM0IZEgzl6426+8jSC0nF1a/GmnVLpfB9yyr6g6FTqWqiZVbxrtaCIg==}
+    engines: {node: 18 || 20 || >=22}
+
   minimatch@3.1.2:
     resolution: {integrity: sha512-J7p63hRiAjw1NDEww1W7i37+ByIrOWO5XQQAzZ3VOcL0PNybwpfmV/N05zFAzwQ9USyEcX6t3UO+K5aqBQOIHw==}
 
@@ -2826,6 +2906,10 @@ packages:
 
   minipass@7.1.2:
     resolution: {integrity: sha512-qOOzS1cBTWYF4BH8fVePDBOO9iptMnGUEZwNc/cMWnTV2nVLZ7VoNWEPHkYczZA0pdoA7dl6e7FL659nX9S2aw==}
+    engines: {node: '>=16 || 14 >=14.17'}
+
+  minipass@7.1.3:
+    resolution: {integrity: sha512-tEBHqDnIoM/1rXME1zgka9g6Q2lcoCkxHLuc7ODJ5BxbP5d4c2Z5cGgtXAku59200Cx7diuHTOYfSBD8n6mm8A==}
     engines: {node: '>=16 || 14 >=14.17'}
 
   minizlib@3.1.0:
@@ -2972,6 +3056,10 @@ packages:
     resolution: {integrity: sha512-oWyT4gICAu+kaA7QWk/jvCHWarMKNs6pXOGWKDTr7cw4IGcUbW+PeTfbaQiLGheFRpjo6O9J0PmyMfQPjH71oA==}
     engines: {node: 20 || >=22}
 
+  path-scurry@2.0.2:
+    resolution: {integrity: sha512-3O/iVVsJAPsOnpwWIeD+d6z/7PmqApyQePUtCndjatj/9I5LylHvt5qluFaBT3I5h3r1ejfR056c+FCv+NnNXg==}
+    engines: {node: 18 || 20 || >=22}
+
   path-type@4.0.0:
     resolution: {integrity: sha512-gDKb8aZMDeD/tZWs9P6+q0J9Mwkdl6xMV8TjnGP3qJVJ06bdMgkbBlLU8IdfOsIsFz2BW1rNVT3XuNEl8zPAvw==}
     engines: {node: '>=8'}
@@ -3065,10 +3153,10 @@ packages:
   randombytes@2.1.0:
     resolution: {integrity: sha512-vYl3iOX+4CKUWuxGi9Ukhie6fsqXqS9FE2Zaic4tNFD2N2QQaXOMFbuKK4QmDHC0JO6B1Zp41J0LpT0oR68amQ==}
 
-  react-dom@18.3.1:
-    resolution: {integrity: sha512-5m4nQKp+rZRb09LNH59GM4BxTh9251/ylbKIbpe7TpGxfJ+9kv6BLkLBXIjjspbgbnIBNqlI23tRnTWT0snUIw==}
+  react-dom@19.2.4:
+    resolution: {integrity: sha512-AXJdLo8kgMbimY95O2aKQqsz2iWi9jMgKJhRBAxECE4IFxfcazB2LmzloIoibJI3C12IlY20+KFaLv+71bUJeQ==}
     peerDependencies:
-      react: ^18.3.1
+      react: ^19.2.4
 
   react-refresh@0.17.0:
     resolution: {integrity: sha512-z6F7K9bV85EfseRCp2bzrpyQ0Gkw1uLoCel9XBVWPg/TjRj94SkJzUTGfOa4bs7iJvBWtQG0Wq7wnI0syw3EBQ==}
@@ -3078,8 +3166,8 @@ packages:
     resolution: {integrity: sha512-QgT5//D3jfjJb6Gsjxv0Slpj23ip+HtOpnNgnb2S5zU3CB26G/IDPGoy4RJB42wzFE46DRsstbW6tKHoKbhAxw==}
     engines: {node: '>=0.10.0'}
 
-  react@18.3.1:
-    resolution: {integrity: sha512-wS+hAgJShR0KhEvPJArfuPVN1+Hz1t0Y6n5jLrGQbkb4urgPE/0Rve+1kMB1v/oWgHgm4WIcV+i7F2pTVj+2iQ==}
+  react@19.2.4:
+    resolution: {integrity: sha512-9nfp2hYpCwOjAN+8TZFGhtWEwgvWHXqESH8qT89AT/lWklpLON22Lc8pEtnpsZz7VmawabSU0gCjnj8aC0euHQ==}
     engines: {node: '>=0.10.0'}
 
   read-yaml-file@1.1.0:
@@ -3150,8 +3238,9 @@ packages:
   rfdc@1.4.1:
     resolution: {integrity: sha512-q1b3N5QkRUWUl7iyylaaj3kOpIT0N2i9MqIEQXP73GVsN9cw3fdx8X63cEmWhJGi2PPCF23Ijp7ktmd39rawIA==}
 
-  rimraf@5.0.10:
-    resolution: {integrity: sha512-l0OE8wL34P4nJH/H2ffoaniAokM2qSmrtXHmlpvYr5AVVX8msAyW0l8NVJFDxlSK4u3Uh/f41cQheDVdnYijwQ==}
+  rimraf@6.1.3:
+    resolution: {integrity: sha512-LKg+Cr2ZF61fkcaK1UdkH2yEBBKnYjTyWzTJT6KNPcSPaiT7HSdhtMXQuN5wkTX0Xu72KQ1l8S42rlmexS2hSA==}
+    engines: {node: 20 || >=22}
     hasBin: true
 
   rollup-plugin-visualizer@5.14.0:
@@ -3218,8 +3307,8 @@ packages:
   safer-buffer@2.1.2:
     resolution: {integrity: sha512-YZo3K82SD7Riyi0E1EQPojLz7kpepnSQI9IyPbHHg1XXXevb5dJI7tpyN2ADxGcQbHG7vcyRHk0cbwqcQriUtg==}
 
-  scheduler@0.23.2:
-    resolution: {integrity: sha512-UOShsPwz7NrMUqhR6t0hWjFduvOzbtv7toDH1/hIrfRNIDBnnBWd0CwJTGvTpngVlmwGCdP9/Zl/tVrDqcuYzQ==}
+  scheduler@0.27.0:
+    resolution: {integrity: sha512-eNv+WrVbKu1f3vbYJT/xtiF5syA5HPIMtf9IgY/nKg0sWqzAUEvqY/xm7OcZc/qafLx/iO9FgOmeSAp4v5ti/Q==}
 
   semver@6.3.1:
     resolution: {integrity: sha512-BR7VvDCVHO+q2xBEWskxS6DJE1qRnb7DxzUrogb71CWoSficBxYsiAGd+Kl0mmq/MprG9yArRkyrQxTO6XjMzA==}
@@ -3432,6 +3521,7 @@ packages:
   tar@7.5.2:
     resolution: {integrity: sha512-7NyxrTE4Anh8km8iEy7o0QYPs+0JKBTj5ZaqHg6B39erLg0qYXN3BijtShwbsNSvQ+LN75+KV+C4QR/f6Gwnpg==}
     engines: {node: '>=18'}
+    deprecated: Old versions of tar are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
 
   temp-dir@2.0.0:
     resolution: {integrity: sha512-aoBAniQmmwtcKp/7BzsH8Cxzv8OL736p7v1ihGb5e9DJ9kTwGWHrQrVB5+lfVDzfGrdRzXch+ig7LHaY1JTOrg==}
@@ -5158,23 +5248,16 @@ snapshots:
 
   '@types/node@12.20.55': {}
 
-  '@types/node@24.10.4':
-    dependencies:
-      undici-types: 7.16.0
-
   '@types/node@25.0.3':
     dependencies:
       undici-types: 7.16.0
 
-  '@types/prop-types@15.7.15': {}
-
-  '@types/react-dom@18.3.7(@types/react@18.3.27)':
+  '@types/react-dom@19.2.3(@types/react@19.2.14)':
     dependencies:
-      '@types/react': 18.3.27
+      '@types/react': 19.2.14
 
-  '@types/react@18.3.27':
+  '@types/react@19.2.14':
     dependencies:
-      '@types/prop-types': 15.7.15
       csstype: 3.2.3
 
   '@types/readdir-glob@1.1.5':
@@ -5304,12 +5387,6 @@ snapshots:
       vite: 7.3.0(@types/node@25.0.3)(terser@5.44.1)
     transitivePeerDependencies:
       - supports-color
-
-  '@vitejs/plugin-vue@6.0.3(vite@7.3.0(@types/node@24.10.4)(terser@5.44.1))(vue@3.5.26(typescript@5.9.3))':
-    dependencies:
-      '@rolldown/pluginutils': 1.0.0-beta.53
-      vite: 7.3.0(@types/node@24.10.4)(terser@5.44.1)
-      vue: 3.5.26(typescript@5.9.3)
 
   '@vitejs/plugin-vue@6.0.3(vite@7.3.0(@types/node@25.0.3)(terser@5.44.1))(vue@3.5.26(typescript@5.9.3))':
     dependencies:
@@ -5613,6 +5690,8 @@ snapshots:
 
   balanced-match@1.0.2: {}
 
+  balanced-match@4.0.4: {}
+
   bare-events@2.8.2: {}
 
   base64-js@1.5.1: {}
@@ -5635,6 +5714,10 @@ snapshots:
   brace-expansion@2.0.2:
     dependencies:
       balanced-match: 1.0.2
+
+  brace-expansion@5.0.4:
+    dependencies:
+      balanced-match: 4.0.4
 
   braces@3.0.3:
     dependencies:
@@ -6255,6 +6338,12 @@ snapshots:
       minipass: 7.1.2
       path-scurry: 2.0.1
 
+  glob@13.0.6:
+    dependencies:
+      minimatch: 10.2.4
+      minipass: 7.1.3
+      path-scurry: 2.0.2
+
   globals@14.0.0: {}
 
   globalthis@1.0.4:
@@ -6580,10 +6669,6 @@ snapshots:
 
   lodash@4.17.21: {}
 
-  loose-envify@1.4.0:
-    dependencies:
-      js-tokens: 4.0.0
-
   lru-cache@10.4.3: {}
 
   lru-cache@11.2.4: {}
@@ -6625,6 +6710,10 @@ snapshots:
     dependencies:
       '@isaacs/brace-expansion': 5.0.0
 
+  minimatch@10.2.4:
+    dependencies:
+      brace-expansion: 5.0.4
+
   minimatch@3.1.2:
     dependencies:
       brace-expansion: 1.1.12
@@ -6640,6 +6729,8 @@ snapshots:
   minipass@4.2.8: {}
 
   minipass@7.1.2: {}
+
+  minipass@7.1.3: {}
 
   minizlib@3.1.0:
     dependencies:
@@ -6775,6 +6866,11 @@ snapshots:
       lru-cache: 11.2.4
       minipass: 7.1.2
 
+  path-scurry@2.0.2:
+    dependencies:
+      lru-cache: 11.2.4
+      minipass: 7.1.3
+
   path-type@4.0.0: {}
 
   pathe@2.0.3: {}
@@ -6841,19 +6937,16 @@ snapshots:
     dependencies:
       safe-buffer: 5.2.1
 
-  react-dom@18.3.1(react@18.3.1):
+  react-dom@19.2.4(react@19.2.4):
     dependencies:
-      loose-envify: 1.4.0
-      react: 18.3.1
-      scheduler: 0.23.2
+      react: 19.2.4
+      scheduler: 0.27.0
 
   react-refresh@0.17.0: {}
 
   react-refresh@0.18.0: {}
 
-  react@18.3.1:
-    dependencies:
-      loose-envify: 1.4.0
+  react@19.2.4: {}
 
   read-yaml-file@1.1.0:
     dependencies:
@@ -6943,9 +7036,10 @@ snapshots:
 
   rfdc@1.4.1: {}
 
-  rimraf@5.0.10:
+  rimraf@6.1.3:
     dependencies:
-      glob: 10.5.0
+      glob: 13.0.6
+      package-json-from-dist: 1.0.1
 
   rollup-plugin-visualizer@5.14.0(rollup@4.54.0):
     dependencies:
@@ -7037,9 +7131,7 @@ snapshots:
 
   safer-buffer@2.1.2: {}
 
-  scheduler@0.23.2:
-    dependencies:
-      loose-envify: 1.4.0
+  scheduler@0.27.0: {}
 
   semver@6.3.1: {}
 
@@ -7529,19 +7621,6 @@ snapshots:
       source-map: 0.7.6
       stack-trace: 1.0.0-pre2
       vite: 7.3.0(@types/node@25.0.3)(terser@5.44.1)
-
-  vite@7.3.0(@types/node@24.10.4)(terser@5.44.1):
-    dependencies:
-      esbuild: 0.27.2
-      fdir: 6.5.0(picomatch@4.0.3)
-      picomatch: 4.0.3
-      postcss: 8.5.6
-      rollup: 4.54.0
-      tinyglobby: 0.2.15
-    optionalDependencies:
-      '@types/node': 24.10.4
-      fsevents: 2.3.3
-      terser: 5.44.1
 
   vite@7.3.0(@types/node@25.0.3)(terser@5.44.1):
     dependencies:

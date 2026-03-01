@@ -18,6 +18,7 @@ interface CacheManifest {
     created: number;
     lastModified: number;
     nodeVersion: string;
+    invalidateTokens: Record<string, string>;
   };
 }
 
@@ -50,6 +51,9 @@ export function createCachePlugin(options: CreateCachePluginOptions | null = {})
     strategy = {},
   } = safeOptions;
 
+  const hashAlgorithm = strategy.hashAlgorithm ?? 'sha256';
+  const invalidateOn = strategy.invalidateOn ?? [];
+  const maxAge = strategy.maxAge;
   const maxCacheSize = strategy.maxSize ?? 50000; // Max 50k files
   
   let cacheManifest: CacheManifest = {
@@ -59,10 +63,12 @@ export function createCachePlugin(options: CreateCachePluginOptions | null = {})
       created: Date.now(),
       lastModified: Date.now(),
       nodeVersion: process.version,
+      invalidateTokens: {},
     },
   };
   
   let manifestPath: string;
+  let projectRoot: string;
   let hasChanges = false;
   
   // Per-build hash cache (cleared after each build)
@@ -81,6 +87,7 @@ export function createCachePlugin(options: CreateCachePluginOptions | null = {})
           apply: 'build',
           
           configResolved(config) {
+            projectRoot = config.root;
             manifestPath = join(config.root, cacheDir, 'manifest.json');
             
             const cacheDirPath = join(config.root, cacheDir);
@@ -95,6 +102,7 @@ export function createCachePlugin(options: CreateCachePluginOptions | null = {})
             // Clear per-build caches
             fileHashCache.clear();
             hasChanges = false;
+            refreshInvalidationState();
             logger.info(`Cache initialized (${cacheManifest.files.size} entries)`);
           },
           
@@ -102,14 +110,17 @@ export function createCachePlugin(options: CreateCachePluginOptions | null = {})
             if (id.startsWith('\0') || id.includes('node_modules')) {
               return null;
             }
-            
-            if (shouldCache(id, include, exclude)) {
+
+            const relativeId = normalizePathForMatch(relative(projectRoot, id));
+            const matchPath = relativeId.startsWith('..') ? normalizePathForMatch(id) : relativeId;
+
+            if (shouldCache(matchPath, include, exclude)) {
               const cacheResult = checkFileCache(id);
               
               if (cacheResult.hit) {
-                logger.debug(`Cache hit: ${relative(process.cwd(), id)}`);
+                logger.debug(`Cache hit: ${relative(projectRoot, id)}`);
               } else {
-                logger.debug(`Cache miss: ${relative(process.cwd(), id)}`);
+                logger.debug(`Cache miss: ${relative(projectRoot, id)}`);
                 hasChanges = true;
               }
             }
@@ -166,6 +177,7 @@ export function createCachePlugin(options: CreateCachePluginOptions | null = {})
             created: Number(parsed.metadata && (parsed.metadata as Record<string, unknown>).created) || Date.now(),
             lastModified: Number(parsed.metadata && (parsed.metadata as Record<string, unknown>).lastModified) || Date.now(),
             nodeVersion: String(parsed.metadata && (parsed.metadata as Record<string, unknown>).nodeVersion) || process.version,
+            invalidateTokens: getInvalidateTokens(parsed.metadata),
           },
         };
       }
@@ -246,7 +258,7 @@ export function createCachePlugin(options: CreateCachePluginOptions | null = {})
       
       // File metadata unchanged - cache hit
       return { hit: true, info: cachedInfo };
-    } catch (error) {
+    } catch {
       // File read error - remove from cache
       cacheManifest.files.delete(filePath);
       logger.debug(`File access error, removed from cache: ${filePath}`);
@@ -261,7 +273,7 @@ export function createCachePlugin(options: CreateCachePluginOptions | null = {})
     
     try {
       const content = readFileSync(filePath);
-      const hash = createHash('sha256').update(content).digest('hex').slice(0, 16);
+      const hash = createHash(hashAlgorithm).update(content).digest('hex').slice(0, 16);
       
       // LRU-like behavior: clear oldest entries when limit reached
       if (fileHashCache.size >= MAX_HASH_CACHE_SIZE) {
@@ -271,7 +283,7 @@ export function createCachePlugin(options: CreateCachePluginOptions | null = {})
       
       fileHashCache.set(filePath, hash);
       return hash;
-    } catch (error) {
+    } catch {
       logger.debug(`Failed to compute hash for: ${filePath}`);
       return '';
     }
@@ -279,9 +291,20 @@ export function createCachePlugin(options: CreateCachePluginOptions | null = {})
 
   function cleanupOldEntries(): void {
     const filesToRemove: string[] = [];
+    const now = Date.now();
     
-    for (const filePath of cacheManifest.files.keys()) {
+    for (const [filePath, info] of cacheManifest.files.entries()) {
       if (!existsSync(filePath)) {
+        filesToRemove.push(filePath);
+        continue;
+      }
+
+      if (
+        typeof maxAge === 'number' &&
+        Number.isFinite(maxAge) &&
+        maxAge > 0 &&
+        now - info.mtime > maxAge
+      ) {
         filesToRemove.push(filePath);
       }
     }
@@ -309,6 +332,69 @@ export function createCachePlugin(options: CreateCachePluginOptions | null = {})
     logger.info(`Enforced cache size limit, removed ${entriesToRemove} oldest entries`);
     hasChanges = true;
   }
+
+  function refreshInvalidationState(): void {
+    if (invalidateOn.length === 0) {
+      return;
+    }
+
+    const previousTokens = cacheManifest.metadata.invalidateTokens ?? {};
+    const nextTokens: Record<string, string> = {};
+
+    for (const trackedPath of invalidateOn) {
+      const absolutePath = join(projectRoot, trackedPath);
+      nextTokens[trackedPath] = getInvalidationToken(absolutePath);
+    }
+
+    const hasTrackedChange = invalidateOn.some(
+      trackedPath => previousTokens[trackedPath] !== nextTokens[trackedPath]
+    );
+
+    cacheManifest.metadata.invalidateTokens = nextTokens;
+
+    if (hasTrackedChange) {
+      const removedEntries = cacheManifest.files.size;
+      cacheManifest.files.clear();
+      logger.info(`Cache invalidated by tracked file changes (${removedEntries} entries cleared)`);
+      hasChanges = true;
+    } else if (Object.keys(previousTokens).length === 0) {
+      // Persist initial invalidation tokens on first run.
+      hasChanges = true;
+    }
+  }
+
+  function getInvalidationToken(filePath: string): string {
+    if (!existsSync(filePath)) {
+      return 'missing';
+    }
+
+    try {
+      const stats = statSync(filePath);
+      const hash = computeFileHash(filePath);
+      return `${stats.size}:${stats.mtimeMs}:${hash}`;
+    } catch {
+      return 'error';
+    }
+  }
+}
+
+function getInvalidateTokens(metadata: unknown): Record<string, string> {
+  if (!metadata || typeof metadata !== 'object') {
+    return {};
+  }
+
+  const maybeTokens = (metadata as Record<string, unknown>).invalidateTokens;
+  if (!maybeTokens || typeof maybeTokens !== 'object') {
+    return {};
+  }
+
+  const tokens: Record<string, string> = {};
+  for (const [key, value] of Object.entries(maybeTokens)) {
+    if (typeof value === 'string') {
+      tokens[key] = value;
+    }
+  }
+  return tokens;
 }
 
 function shouldCache(filePath: string, include: readonly string[], exclude: readonly string[]): boolean {
@@ -326,11 +412,12 @@ function shouldCache(filePath: string, include: readonly string[], exclude: read
 }
 
 function matchesPattern(pattern: string, filePath: string): boolean {
-  let regex = patternCache.get(pattern);
+  const normalizedPattern = normalizePathForMatch(pattern);
+  let regex = patternCache.get(normalizedPattern);
   
   if (!regex) {
     // Escape special regex characters except * and **
-    const regexPattern = pattern
+    const regexPattern = normalizedPattern
       .replace(/[.+^${}()|[\]\\]/g, '\\$&')
       .replace(/\*\*/g, '<<<GLOBSTAR>>>')
       .replace(/\*/g, '[^/\\\\]*')
@@ -344,10 +431,14 @@ function matchesPattern(pattern: string, filePath: string): boolean {
       if (firstKey) patternCache.delete(firstKey);
     }
     
-    patternCache.set(pattern, regex);
+    patternCache.set(normalizedPattern, regex);
   }
   
   return regex.test(filePath);
+}
+
+function normalizePathForMatch(filePath: string): string {
+  return filePath.replace(/\\/g, '/').replace(/^\.\/+/, '');
 }
 
 export default createCachePlugin;

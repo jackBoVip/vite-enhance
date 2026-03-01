@@ -10,15 +10,15 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "vue": "^3.4.0",
-    "lodash-es": "^4.17.21",
-    "dayjs": "^1.11.10"
+    "vue": "catalog:",
+    "lodash-es": "catalog:",
+    "dayjs": "catalog:"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^6.0.0",
-    "typescript": "^5.9.0",
-    "vite": "^7.0.0",
+    "@vitejs/plugin-vue": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
     "vite-enhance": "workspace:*",
-    "rollup-plugin-visualizer": "^6.0.0"
+    "rollup-plugin-visualizer": "catalog:"
   }
 }
