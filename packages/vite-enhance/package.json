@@ -39,6 +39,7 @@
     "@types/node": "catalog:",
     "@types/tar": "catalog:",
     "@types/archiver": "catalog:",
+    "rimraf": "catalog:",
     "eslint": "catalog:",
     "@typescript-eslint/eslint-plugin": "catalog:",
     "@typescript-eslint/parser": "catalog:"
