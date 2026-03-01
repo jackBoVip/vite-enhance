@@ -1,6 +1,6 @@
 {
   "name": "vite-enhance",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "A modular Vite enhancement toolkit for enterprise-grade frontend engineering",
   "private": false,
   "type": "module",

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.1
+
+### Patch Changes
+
+- ab3bb19: Fix configuration integration consistency, improve cache behavior, and align docs/types with runtime behavior.
+
 ## 0.5.0
 
 ### Minor Changes
